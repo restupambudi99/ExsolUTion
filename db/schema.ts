@@ -71,3 +71,25 @@ export const studioProviderCredentials = sqliteTable("studio_provider_credential
   revision: text("revision").notNull(),
   deleted: integer("deleted").notNull().default(0),
 }, (table) => [primaryKey({ columns: [table.userId, table.provider] })]);
+
+// Global studio directions are additive; base intent remains in the feature registry.
+export const studioPromptSettings = sqliteTable("studio_prompt_settings", {
+  featureId: text("feature_id").primaryKey(),
+  additionalInstructions: text("additional_instructions").notNull(),
+  previousInstructions: text("previous_instructions").notNull(),
+  revision: integer("revision").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+  lastChangeId: text("last_change_id").notNull(),
+});
+
+export const studioPromptChanges = sqliteTable("studio_prompt_changes", {
+  id: text("id").primaryKey(),
+  featureId: text("feature_id").notNull(),
+  previousRevision: integer("previous_revision").notNull(),
+  revision: integer("revision").notNull(),
+  previousInstructions: text("previous_instructions").notNull(),
+  additionalInstructions: text("additional_instructions").notNull(),
+  reason: text("reason").notNull(),
+  actorId: text("actor_id").notNull(),
+  createdAt: integer("created_at").notNull(),
+}, (table) => [index("studio_prompt_changes_created_idx").on(table.createdAt, table.id)]);

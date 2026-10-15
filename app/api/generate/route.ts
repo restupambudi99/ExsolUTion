@@ -5,6 +5,7 @@ import { ApiError, assertSameOrigin, authenticatedUser, bucket, database, errorR
 import { assertGeminiGeneration, generateWithGemini, ProviderError } from "@/lib/studio-provider";
 import { resolveProviderForUser, rememberProviderForUser } from "@/lib/studio-credentials";
 import { imageVariationDirection } from "@/lib/studio-image-variation";
+import { appendFeaturePromptInstructions, getFeaturePromptSettings } from "@/lib/studio-prompt-settings";
 import { assertRouterGeneration, generateWithRouter } from "@/lib/studio-router";
 import { persistGeneration } from "@/lib/studio-storage";
 import { validateGenerate, ValidationError } from "@/lib/studio-validation";
@@ -89,7 +90,9 @@ export async function POST(request: Request) {
     // Verify storage before sending a request that can incur provider charges.
     database();
     if (input.kind !== "text") bucket();
-    const receipt = await claimGenerationRequest(user.userId,requestId,await generationFingerprint(input,selectedProvider));
+    const promptSettings = input.kind === "audio" ? null : await getFeaturePromptSettings(feature.id);
+    const featureIntent = promptSettings ? appendFeaturePromptInstructions(promptSettings.basePrompt,promptSettings.additionalInstructions) : feature.promptIntent;
+    const receipt = await claimGenerationRequest(user.userId,requestId,await generationFingerprint(input,selectedProvider,{ revision: promptSettings?.revision ?? 0, featureIntent }));
     if (!receipt.claimed) {
       const state = await generationRequestState(receipt.row);
       if (state.status === "completed") return json(state.data);
@@ -107,7 +110,7 @@ export async function POST(request: Request) {
       const field = image.fieldId && fields.find((item) => item.id === image.fieldId && item.type === "file");
       return `Reference image ${index + 1}: ${field ? field.label : "uploaded image"}`;
     });
-    const intent = `${feature.promptIntent}${input.kind === "image" ? `\n${imageVariationDirection(feature,input,fields)}` : ""}\nFeature: ${feature.label}\n${labelledOptions.join("\n")}\n${referenceLabels.join("\n")}${input.kind === "image" ? `\n${imagePhotographyDirection}` : ""}`;
+    const intent = `${featureIntent}${input.kind === "image" ? `\n${imageVariationDirection(feature,input,fields)}` : ""}\nFeature: ${feature.label}\n${labelledOptions.join("\n")}\n${referenceLabels.join("\n")}${input.kind === "image" ? `\n${imagePhotographyDirection}` : ""}`;
     const acceptedRequestId = requestId;
     const execute = async (): Promise<{ status: number; data: GenerationResponse | GenerationFailure }> => {
       try {

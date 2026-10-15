@@ -14,5 +14,6 @@ declare namespace Cloudflare {
     NINEROUTER_VOICE?: string;
     NINEROUTER_ALLOWED_HTTP_ORIGINS?: string;
     STUDIO_CREDENTIAL_ENCRYPTION_KEY?: string;
+    STUDIO_ADMIN_USER_IDS?: string;
   }
 }

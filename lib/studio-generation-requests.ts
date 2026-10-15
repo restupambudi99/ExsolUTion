@@ -33,7 +33,7 @@ async function sha256(value: string) {
 }
 
 /** Store only a hash: never API keys, uploaded photo bytes, or provider payloads. */
-export async function generationFingerprint(input: GenerateInput, selected: SelectedProvider) {
+export async function generationFingerprint(input: GenerateInput, selected: SelectedProvider, promptConfiguration?: { revision: number; featureIntent: string }) {
   const settings = selected.settings;
   const model = input.kind === "image" ? settings.imageModel : input.kind === "audio" ? settings.audioModel : settings.textModel;
   const provider = selected.provider === "9router"
@@ -42,7 +42,7 @@ export async function generationFingerprint(input: GenerateInput, selected: Sele
   const images = [];
   // Hash sequentially to avoid holding encodings for all reference photos at once.
   for (const image of input.images) images.push({ hash: await sha256(image.data), mimeType: image.mimeType, fieldId: image.fieldId, role: image.role });
-  return sha256(stable({ featureId: input.featureId, kind: input.kind, prompt: input.prompt, options: input.options, images, provider }));
+  return sha256(stable({ featureId: input.featureId, kind: input.kind, prompt: input.prompt, options: input.options, images, provider, promptConfiguration }));
 }
 
 export async function ownedGenerationRequest(userId: string, requestId: string) {
