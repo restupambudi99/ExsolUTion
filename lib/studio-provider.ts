@@ -15,7 +15,7 @@ export type ProviderDiagnostic = {
   endpoint: "models" | "models/image" | "models/tts" | "chat/completions" | "images/generations" | "audio/speech";
   method: "GET" | "POST";
   upstreamStatus: 401 | 403;
-  reason: "remote_api_key_not_accepted" | "unauthorized" | "access_denied" | "cloudflare_direct_ip_blocked";
+  reason: "remote_api_key_not_accepted" | "unauthorized" | "access_denied" | "cloudflare_direct_ip_blocked" | "provider_token_revoked";
 };
 
 export class ProviderError extends Error {

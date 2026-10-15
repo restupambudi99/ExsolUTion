@@ -76,6 +76,19 @@ function parseJson(bytes: Uint8Array): Record<string,unknown> {
   } catch { throw new ProviderError(502,"provider_invalid_response","Format respons provider tidak valid. Pastikan URL mengarah ke API yang kompatibel."); }
 }
 
+function hasRevokedProviderToken(value: unknown, depth = 0): boolean {
+  if (depth > 4) return false;
+  if (typeof value === "string") {
+    // 9Router can prefix the provider JSON with a model/status and suffix a reset
+    // time. Match only the known code property, never expose the surrounding text.
+    if (/"code"\s*:\s*"token_revoked"/.test(value)) return true;
+    try { return hasRevokedProviderToken(JSON.parse(value),depth+1); } catch { return false; }
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const error = value as Record<string,unknown>;
+  return error.code === "token_revoked" || hasRevokedProviderToken(error.error,depth+1) || hasRevokedProviderToken(error.message,depth+1);
+}
+
 async function errorPrefix(response: Response, limit: number) {
   if (!response.body) return new Uint8Array();
   const reader = response.body.getReader();
@@ -189,9 +202,14 @@ async function routerRequest(settings: RouterSettings, path: string, body?: unkn
         // upstream error bodies, which can contain credentials or account data.
         let remoteKeyGate = false;
         let directIpBlock = false;
+        let revokedProviderToken = false;
         try {
           const errorBytes = await errorPrefix(response,8192);
-          if (response.status === 401) remoteKeyGate = parseJson(errorBytes).error === "API key required for remote API access";
+          if (response.status === 401) {
+            const payload = parseJson(errorBytes);
+            remoteKeyGate = payload.error === "API key required for remote API access";
+            revokedProviderToken = body !== undefined && !remoteKeyGate && hasRevokedProviderToken(payload);
+          }
           else {
             const marker = new TextDecoder().decode(errorBytes).toLowerCase();
             const literalIp = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(new URL(baseUrl).hostname);
@@ -203,12 +221,14 @@ async function routerRequest(settings: RouterSettings, path: string, body?: unkn
         const method = catalog ? "GET" : "POST";
         const diagnostic: ProviderDiagnostic = {
           provider: "9router", stage: catalog ? "catalog" : "generation", endpoint, method,
-          upstreamStatus: response.status, reason: directIpBlock ? "cloudflare_direct_ip_blocked" : response.status === 403 ? "access_denied" : remoteKeyGate ? "remote_api_key_not_accepted" : "unauthorized",
+          upstreamStatus: response.status, reason: directIpBlock ? "cloudflare_direct_ip_blocked" : response.status === 403 ? "access_denied" : remoteKeyGate ? "remote_api_key_not_accepted" : revokedProviderToken ? "provider_token_revoked" : "unauthorized",
         };
         const location = `${method} ${endpoint} (HTTP ${response.status})`;
         if (directIpBlock) throw new ProviderError(502,"router_domain_required",`Cloudflare memblokir koneksi langsung ke alamat IP pada ${location} (1003). Gunakan Base URL dengan domain HTTPS milik Anda yang mengarah ke VPS 9Router. Penolakan ini terjadi sebelum autentikasi 9Router; validitas API key belum dapat dipastikan.`,diagnostic);
         if (response.status === 403) throw new ProviderError(502,"router_access_denied",`Akses 9Router ditolak pada ${location}. Periksa izin endpoint atau proxy pada instance ini; respons ini belum membuktikan bahwa API key salah.`,diagnostic);
         if (remoteKeyGate) throw new ProviderError(502,"provider_authentication_failed",`9Router menolak autentikasi akses jarak jauh pada ${location}. Gunakan nilai API key lengkap yang terdaftar dan aktif di instance Base URL ini.${catalog ? " Pemeriksaan berhenti sebelum pemilihan atau generasi model." : ""}`,diagnostic);
+        if (revokedProviderToken) throw new ProviderError(502,"router_provider_reauthentication_required",`Sesi akun provider model tujuan sudah dicabut (token_revoked) pada ${location}. Buka dashboard 9Router lalu hubungkan atau login ulang provider model yang dipilih. Mengganti API key 9Router tidak memperbarui sesi provider ini.`,diagnostic);
+        if (!catalog) throw new ProviderError(502,"router_generation_authentication_failed",`Autentikasi saat generasi melalui 9Router ditolak pada ${location}. Periksa sesi akun provider tujuan dan aturan proxy. Respons generasi ini belum membuktikan bahwa API key 9Router salah; gunakan Uji Koneksi untuk memeriksa akses katalog secara terpisah.`,diagnostic);
         throw new ProviderError(502,"provider_authentication_failed",`Autentikasi 9Router ditolak pada ${location}. Periksa API key dan aturan autentikasi proxy untuk Base URL ini.${catalog ? " Pemeriksaan katalog ini belum menguji akses ke model." : " Periksa juga koneksi provider tujuan pada dashboard 9Router."}`,diagnostic);
       }
       await response.body?.cancel();
