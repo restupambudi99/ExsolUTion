@@ -5282,6 +5282,27 @@ export const features: Feature[] = [
         "kind": "image",
         "fields": [
           {
+            "id": "before-after-input-mode",
+            "label": "Pilih Mode",
+            "type": "choice",
+            "defaultValue": "upload",
+            "required": false,
+            "options": [
+              {
+                "value": "upload",
+                "label": "Upload & Transform"
+              },
+              {
+                "value": "text",
+                "label": "Text to Image"
+              },
+              {
+                "value": "product",
+                "label": "Showcase Produk"
+              }
+            ]
+          },
+          {
             "id": "ba-before-upload",
             "label": "Upload foto \"before\" PNG, JPG, WEBP, HEIC",
             "type": "file",
@@ -5295,7 +5316,7 @@ export const features: Feature[] = [
             "label": "Prompt Transformasi",
             "type": "textarea",
             "defaultValue": "",
-            "required": false,
+            "required": true,
             "placeholder": "Contoh: Ubah lapangan ini menjadi ada bangunan hotel mewah 5 lantai dengan kolam renang",
             "role": "prompt"
           },
@@ -5304,7 +5325,7 @@ export const features: Feature[] = [
             "label": "Deskripsi Before-After",
             "type": "textarea",
             "defaultValue": "",
-            "required": false,
+            "required": true,
             "placeholder": "Contoh: Buat before after dari lapangan gersang kosong menjadi kompleks hotel mewah dengan gedung 5 lantai, taman hijau, dan kolam renang",
             "role": "prompt"
           },
@@ -5313,29 +5334,12 @@ export const features: Feature[] = [
             "label": "Upload Foto",
             "type": "file",
             "defaultValue": "",
-            "required": false,
+            "required": true,
             "accept": "image/png,image/jpeg,image/webp",
             "role": "image"
           },
           {
             "id": "beforeafter-show-labels",
-            "label": "Tampilkan",
-            "type": "choice",
-            "defaultValue": "yes",
-            "required": false,
-            "options": [
-              {
-                "value": "no",
-                "label": "Tidak"
-              },
-              {
-                "value": "yes",
-                "label": "Ya"
-              }
-            ]
-          },
-          {
-            "id": "beforeafter-show-arrows",
             "label": "Text Labels (BEFORE/AFTER)",
             "type": "choice",
             "defaultValue": "yes",
@@ -5352,8 +5356,25 @@ export const features: Feature[] = [
             ]
           },
           {
-            "id": "beforeafter-show-highlight",
+            "id": "beforeafter-show-arrows",
             "label": "Arrow Indicators",
+            "type": "choice",
+            "defaultValue": "yes",
+            "required": false,
+            "options": [
+              {
+                "value": "no",
+                "label": "Tidak"
+              },
+              {
+                "value": "yes",
+                "label": "Ya"
+              }
+            ]
+          },
+          {
+            "id": "beforeafter-show-highlight",
+            "label": "Highlight Perubahan",
             "type": "choice",
             "defaultValue": "yes",
             "required": false,
@@ -5405,7 +5426,7 @@ export const features: Feature[] = [
             "id": "ba-ratio-options",
             "label": "Rasio aspek",
             "type": "choice",
-            "defaultValue": "1:1",
+            "defaultValue": "16:9",
             "required": false,
             "role": "ratio",
             "options": [
@@ -7083,6 +7104,23 @@ export const features: Feature[] = [
     "kind": "image",
     "fields": [
       {
+        "id": "profesi-mode",
+        "label": "Pilih Mode",
+        "type": "choice",
+        "defaultValue": "regular",
+        "required": false,
+        "options": [
+          {
+            "value": "regular",
+            "label": "Foto Profesi"
+          },
+          {
+            "value": "composite",
+            "label": "Foto Composite"
+          }
+        ]
+      },
+      {
         "id": "profesi-child-upload",
         "label": "👦 Klik untuk upload foto anak Format: JPG, PNG, HEIC",
         "type": "file",
@@ -7447,7 +7485,8 @@ export const features: Feature[] = [
             "value": "10",
             "label": "10"
           }
-        ]
+        ],
+        "role": "count"
       },
       {
         "id": "profesi-anak-brief",
@@ -8620,7 +8659,7 @@ export const features: Feature[] = [
         "label": "Foto Sekarang Versi dewasa kamu",
         "type": "file",
         "defaultValue": "",
-        "required": false,
+        "required": true,
         "accept": "image/png,image/jpeg,image/webp",
         "role": "image"
       },
@@ -8629,7 +8668,7 @@ export const features: Feature[] = [
         "label": "Foto Masa Kecil Versi kecil kamu (usia bebas)",
         "type": "file",
         "defaultValue": "",
-        "required": false,
+        "required": true,
         "accept": "image/png,image/jpeg,image/webp",
         "role": "image"
       },
@@ -8696,7 +8735,7 @@ export const features: Feature[] = [
         "id": "birthday-theme-options",
         "label": "Tema Ulang Tahun",
         "type": "choice",
-        "defaultValue": "memory-projection",
+        "defaultValue": "rainbow-party",
         "required": false,
         "role": "style",
         "options": [
@@ -8812,7 +8851,6 @@ export const features: Feature[] = [
         "type": "choice",
         "defaultValue": "balloon-arch",
         "required": false,
-        "role": "ratio",
         "options": [
           {
             "value": "balloon-arch",
@@ -9026,7 +9064,7 @@ export const features: Feature[] = [
         "label": "Upload Foto Keluarga (Opsional)",
         "type": "file",
         "defaultValue": "",
-        "required": true,
+        "required": false,
         "accept": "image/png,image/jpeg,image/webp",
         "multiple": true,
         "role": "image"
@@ -11541,7 +11579,6 @@ export const features: Feature[] = [
         "type": "choice",
         "defaultValue": "moderate",
         "required": false,
-        "role": "ratio",
         "options": [
           {
             "value": "subtle",
@@ -13142,8 +13179,7 @@ export const features: Feature[] = [
         "required": false,
         "min": -100.0,
         "max": 100.0,
-        "step": 1.0,
-        "role": "ratio"
+        "step": 1.0
       },
       {
         "id": "photoeditor-warmth",
@@ -13479,7 +13515,6 @@ export const features: Feature[] = [
         "type": "choice",
         "defaultValue": "light",
         "required": false,
-        "role": "ratio",
         "options": [
           {
             "value": "light",
@@ -13655,7 +13690,8 @@ export const features: Feature[] = [
             "value": "4",
             "label": "4 Variasi"
           }
-        ]
+        ],
+        "role": "count"
       },
       {
         "id": "object-remover-brief",
@@ -14608,7 +14644,7 @@ export const features: Feature[] = [
         "label": "Foto Referensi (Gaya)",
         "type": "file",
         "defaultValue": "",
-        "required": false,
+        "required": true,
         "accept": "image/png,image/jpeg,image/webp",
         "role": "image"
       },
@@ -16092,7 +16128,8 @@ export const features: Feature[] = [
             "value": "9",
             "label": "9 Poster"
           }
-        ]
+        ],
+        "role": "count"
       },
       {
         "id": "poster-generator-result-count",
@@ -17285,6 +17322,23 @@ export const features: Feature[] = [
     "kind": "image",
     "fields": [
       {
+        "id": "dr-mode",
+        "label": "Pilih Mode",
+        "type": "choice",
+        "defaultValue": "interior",
+        "required": false,
+        "options": [
+          {
+            "value": "interior",
+            "label": "Interior"
+          },
+          {
+            "value": "eksterior",
+            "label": "Eksterior"
+          }
+        ]
+      },
+      {
         "id": "dr-interior-room-input",
         "label": "Klik atau seret foto",
         "type": "file",
@@ -17318,7 +17372,7 @@ export const features: Feature[] = [
         "defaultValue": "",
         "required": false,
         "placeholder": "Contoh: Letakkan sofa di depan jendela...",
-        "role": "ratio"
+        "role": "prompt"
       },
       {
         "id": "dr-eksterior-house-input",
@@ -17344,7 +17398,7 @@ export const features: Feature[] = [
         "defaultValue": "",
         "required": false,
         "placeholder": "Contoh: Ganti cat menjadi putih, dengan aksen kayu...",
-        "role": "ratio"
+        "role": "prompt"
       },
       {
         "id": "desain-rumah-choice-1",
@@ -18739,7 +18793,7 @@ export const features: Feature[] = [
         "label": "Variant B * Click to upload",
         "type": "file",
         "defaultValue": "",
-        "required": false,
+        "required": true,
         "accept": "image/png,image/jpeg,image/webp",
         "role": "image"
       },
@@ -19669,7 +19723,6 @@ export const features: Feature[] = [
         "type": "choice",
         "defaultValue": "intro",
         "required": false,
-        "role": "voice",
         "options": [
           {
             "value": "intro",
@@ -19816,12 +19869,9 @@ export const features: Feature[] = [
           {
             "value": "10",
             "label": "10 Frames"
-          },
-          {
-            "value": "15",
-            "label": "15 Frames"
           }
-        ]
+        ],
+        "help": "Maksimal 10 frame per proses."
       },
       {
         "id": "video-analyzer-brief",
@@ -20073,12 +20123,9 @@ export const features: Feature[] = [
           {
             "value": "10",
             "label": "10 Frame"
-          },
-          {
-            "value": "20",
-            "label": "20 Frame"
           }
-        ]
+        ],
+        "help": "Maksimal 10 frame per proses."
       },
       {
         "id": "story-board-choice-3",

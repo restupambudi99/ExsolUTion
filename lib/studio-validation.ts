@@ -2,7 +2,7 @@ export type OutputKind = "image" | "text" | "audio";
 export type StudioProvider = "gemini" | "9router";
 export type RouterConfig = { baseUrl?: string; textModel?: string; imageModel?: string; audioModel?: string; voice?: string };
 export type ProviderSelection = { provider?: StudioProvider; apiKey?: string; routerConfig?: RouterConfig };
-export type InputImage = { data: string; mimeType: string; fieldId?: string };
+export type InputImage = { data: string; mimeType: string; fieldId?: string; role?: "reference" | "mask" };
 export type GenerateInput = ProviderSelection & {
   featureId: string;
   prompt: string;
@@ -85,17 +85,25 @@ export function validateGenerate(value: Record<string, unknown>): GenerateInput 
   if (value.kind !== "image" && value.kind !== "text" && value.kind !== "audio") throw new ValidationError("Jenis hasil belum didukung oleh provider ini.");
   const options = safeOptions(value.options);
   const imageValues = value.images ?? [];
-  if (!Array.isArray(imageValues) || imageValues.length > 14) throw new ValidationError("Maksimal 14 gambar referensi.");
+  if (!Array.isArray(imageValues) || imageValues.length > 15) throw new ValidationError("Maksimal 14 foto referensi dan 1 mask.");
   let total = 0;
+  let maskCount = 0;
   const images = imageValues.map((image): InputImage => {
     if (!image || typeof image !== "object" || typeof image.data !== "string" || typeof image.mimeType !== "string" || !IMAGE_MIME_TYPES.has(image.mimeType)) throw new ValidationError("Gunakan gambar PNG, JPEG, atau WebP.");
+    if (image.role !== undefined && image.role !== "reference" && image.role !== "mask") throw new ValidationError("Peran gambar referensi tidak valid.");
+    if (image.role === "mask") {
+      maskCount++;
+      if (image.mimeType !== "image/png") throw new ValidationError("Mask harus berformat PNG hitam dan putih.");
+    }
     const data = image.data.startsWith("data:") ? image.data.slice(image.data.indexOf(",") + 1) : image.data;
     const bytes = decodeBase64(data, MAX_IMAGE_BYTES);
     if (!isMatchingImage(bytes, image.mimeType)) throw new ValidationError("Isi gambar tidak sesuai dengan format file.");
     total += bytes.byteLength;
     const fieldId = typeof image.fieldId === "string" && /^[a-zA-Z0-9_-]{1,100}$/.test(image.fieldId) ? image.fieldId : undefined;
-    return { data, mimeType: image.mimeType, ...(fieldId ? { fieldId } : {}) };
+    return { data, mimeType: image.mimeType, ...(fieldId ? { fieldId } : {}), ...(image.role ? { role: image.role } : {}) };
   });
+  if (maskCount > 1 || images.length-maskCount > 14) throw new ValidationError("Maksimal 14 foto referensi dan 1 mask.");
+  if (maskCount && images.length === maskCount) throw new ValidationError("Mask harus disertai foto sumber.");
   if (total > MAX_INPUT_IMAGE_BYTES) throw new ValidationError("Total gambar maksimal 12 MB.");
   if (value.kind === "audio" && images.length) throw new ValidationError("Fitur suara menerima teks, bukan gambar.");
   return { featureId: value.featureId, prompt: value.prompt.trim(), kind: value.kind, options, images, ...validateProviderSelection(value) };

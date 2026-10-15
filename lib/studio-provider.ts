@@ -7,7 +7,7 @@ export const DEFAULT_MODELS = {
 };
 
 export type ProviderSettings = typeof DEFAULT_MODELS & { apiKey: string };
-export type ProviderOutput = { kind: OutputKind; text?: string; bytes?: Uint8Array; mimeType?: string };
+export type ProviderOutput = { kind: OutputKind; text?: string; bytes?: Uint8Array; mimeType?: string; warnings?: string[] };
 
 export class ProviderError extends Error {
   constructor(public status: number, public code: string, message: string) { super(message); }
@@ -18,6 +18,10 @@ const MAX_RESPONSE_BYTES = 32 * 1024 * 1024;
 const MAX_OUTPUT_BYTES = 20 * 1024 * 1024;
 const ASPECT_RATIOS = new Set(["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9", "1:4", "4:1", "1:8", "8:1"]);
 const VOICES = new Set(["Zephyr", "Puck", "Charon", "Kore", "Fenrir", "Leda", "Orus", "Aoede", "Callirrhoe", "Autonoe", "Enceladus", "Iapetus", "Umbriel", "Algieba", "Despina", "Erinome", "Algenib", "Rasalgethi", "Laomedeia", "Achernar", "Alnilam", "Schedar", "Gacrux", "Pulcherrima", "Achird", "Zubenelgenubi", "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat"]);
+
+export function isGeminiVoice(value: unknown): value is string {
+  return typeof value === "string" && VOICES.has(value);
+}
 
 function validModel(value: string) {
   if (!/^gemini-[a-z0-9.-]{1,100}$/.test(value)) throw new ProviderError(503, "provider_configuration_invalid", "Konfigurasi model Gemini tidak valid.");
@@ -97,7 +101,13 @@ function binaryOutput(data: unknown, mime: unknown, kind: "image" | "audio"): Pr
   return { kind, bytes, mimeType: mime === "audio/x-wav" ? "audio/wav" : mime };
 }
 
+export function assertGeminiGeneration(input: GenerateInput, settings: ProviderSettings) {
+  const model = validModel(input.kind === "image" ? settings.imageModel : input.kind === "text" ? settings.textModel : settings.audioModel);
+  if (input.kind === "audio" && !/^gemini-3\.8-flash(-lite)?-tts$/.test(model)) throw new ProviderError(503,"provider_configuration_invalid","Model suara harus kompatibel dengan Gemini 3.8 TTS Interactions API.");
+}
+
 export async function generateWithGemini(input: GenerateInput, featureIntent: string, settings: ProviderSettings): Promise<ProviderOutput[]> {
+  assertGeminiGeneration(input,settings);
   const options = JSON.stringify(input.options);
   const language = outputLanguage(input.options.language);
   const prompt = `Task: ${featureIntent}\nUser instructions:\n${input.prompt}\nSelected controls (apply every relevant option): ${options}\nOutput language: ${language}. Preserve the supplied reference subjects and products unless the user requests a change. Do not invent product claims, specifications, or testimonials. Return the requested finished output directly.`;
@@ -105,7 +115,7 @@ export async function generateWithGemini(input: GenerateInput, featureIntent: st
   if (input.kind === "audio") {
     const model = validModel(settings.audioModel);
     if (!/^gemini-3\.8-flash(-lite)?-tts$/.test(model)) throw new ProviderError(503, "provider_configuration_invalid", "Model suara harus kompatibel dengan Gemini 3.8 TTS Interactions API.");
-    const voice = typeof input.options.voice === "string" && VOICES.has(input.options.voice) ? input.options.voice : "Kore";
+    const voice = isGeminiVoice(input.options.voice) ? input.options.voice : "Kore";
     const style = typeof input.options.style === "string" ? input.options.style.slice(0, 1000) : "Clear, warm, natural narration in the language of the transcript. Follow the requested pacing and tone.";
     // The speech endpoint returns complete WAV files for unary requests.
     const response = await providerJson("/v1beta/interactions", {

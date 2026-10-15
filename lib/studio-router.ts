@@ -1,5 +1,6 @@
-import { ProviderError, outputLanguage, type ProviderOutput } from "./studio-provider";
+import { ProviderError, isGeminiVoice, outputLanguage, type ProviderOutput } from "./studio-provider";
 import { decodeBase64, IMAGE_MIME_TYPES, isMatchingImage, type GenerateInput } from "./studio-validation";
+import { routerImageReferenceLimit, routerImageReferenceMode, routerImageSizeStrategy, routerMappedAspectRatios } from "./studio-capabilities";
 
 export type RouterSettings = { apiKey: string; baseUrl: string; textModel: string; imageModel: string; audioModel: string; voice: string; allowedHttpOrigins?: string[] };
 const MAX_RESPONSE = 28 * 1024 * 1024;
@@ -110,6 +111,48 @@ function modelId(value: string, kind: string) {
   return value.trim();
 }
 
+function voiceModelId(model: string, voice: string) {
+  if (!voice) return model;
+  if (!/^[A-Za-z0-9._:-]{1,128}$/.test(voice)) throw new ProviderError(400,"invalid_router_voice","Gunakan voice ID 9Router yang valid, bukan nama atau URL bebas.");
+  const parts = model.split("/");
+  if (["openai","gemini","elevenlabs","el","nvidia","inworld","cartesia","playht"].includes(parts[0])) return [...parts.slice(0,parts.length >= 3 ? -1 : parts.length),voice].join("/");
+  if (parts[0] === "openrouter" && parts.length >= 3) return [...parts.slice(0,parts.length >= 4 ? -1 : parts.length),voice].join("/");
+  throw new ProviderError(422,"router_voice_override_unsupported","Provider ini menggunakan voice di dalam ID model. Kosongkan Voice override dan salin model/voice yang tepat dari katalog 9Router.");
+}
+
+/** Local checks run before quota consumption, storage work, or paid provider calls. */
+export function assertRouterGeneration(input: GenerateInput, settings: RouterSettings) {
+  normalizeRouterBaseUrl(settings.baseUrl,settings.allowedHttpOrigins);
+  const model = modelId(input.kind === "text" ? settings.textModel : input.kind === "image" ? settings.imageModel : settings.audioModel,input.kind);
+  if (input.kind === "image" && input.images.some((image) => image.role === "mask") && routerImageReferenceMode(model) !== "multiple") throw new ProviderError(422,"router_mask_unsupported","Mask manual memerlukan adapter 9Router yang menerima foto sumber dan mask bersama, misalnya Codex atau Nanobanana. Adapter satu gambar atau tanpa referensi tidak didukung untuk mode ini.");
+  if (input.kind === "image" && input.images.length > routerImageReferenceLimit(model)) throw new ProviderError(422,"router_reference_images_unsupported","Model gambar ini belum mendukung jumlah gambar referensi yang dipilih melalui adapter 9Router terverifikasi. Pilih Codex/Nanobanana untuk beberapa referensi, atau fal-ai/black-forest-labs/runwayml untuk satu referensi. Gunakan Gemini langsung bila perlu.");
+  if (input.kind === "image") routerImageSize(model,String(input.options.aspectRatio ?? input.options.ratio ?? "1:1"));
+  if (input.kind === "audio") voiceModelId(model,settings.voice);
+}
+
+function routerImageSize(model: string, ratio: string): string | undefined {
+  const strategy = routerImageSizeStrategy(model);
+  if (ratio === "original" || !/^[1-9][0-9]?:[1-9][0-9]?$/.test(ratio)) return undefined;
+  if (strategy === "mapped-ratio") {
+    const sizes: Record<string,string> = { "1:1": "1024x1024", "9:16": "1024x1792", "16:9": "1792x1024", "2:3": "1024x1536", "3:2": "1536x1024" };
+    if (!sizes[ratio]) throw new ProviderError(422,"router_aspect_ratio_unsupported",`Adapter 9Router model ini hanya memetakan rasio ${routerMappedAspectRatios.join(", ")}. Pilih salah satu rasio tersebut atau model lain; rasio ${ratio} tidak dikirim agar tidak berubah menjadi gambar persegi.`);
+    // These are adapter vocabulary tokens, not a claim about the output pixel dimensions.
+    return sizes[ratio];
+  }
+  if (strategy === "dimensions") {
+    if (ratio === "1:1") return "1024x1024";
+    let [widthUnits,heightUnits] = ratio.split(":").map(Number);
+    const gcd = (a: number,b: number): number => b ? gcd(b,a % b) : a;
+    const divisor = gcd(widthUnits,heightUnits);
+    widthUnits /= divisor; heightUnits /= divisor;
+    const unit = Math.floor(1536/(Math.max(widthUnits,heightUnits)*32))*32;
+    const width = widthUnits*unit, height = heightUnits*unit;
+    if (unit < 32 || Math.min(width,height) < 256 || Math.max(width,height) > 2048) throw new ProviderError(422,"router_aspect_ratio_unsupported","Rasio ini tidak dapat dinyatakan dalam batas dimensi studio untuk adapter BFL. Pilih rasio yang lebih dekat ke persegi.");
+    return `${width}x${height}`;
+  }
+  return undefined;
+}
+
 async function routerRequest(settings: RouterSettings, path: string, body?: unknown, limit = MAX_RESPONSE) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(),body === undefined ? 20_000 : 120_000);
@@ -169,55 +212,65 @@ export async function testRouterConnection(settings: RouterSettings) {
   };
   const models = await parseCatalog("models");
   const warnings: string[] = [];
+  const catalogErrors: Record<string,{ code: string; message: string }> = {};
   const optional = async (path: string, label: string) => {
     try { return await parseCatalog(path); }
     catch (error) {
-      if (error instanceof ProviderError && error.code === "router_capability_unavailable") { warnings.push(`Katalog ${label} belum tersedia pada instance ini. Isi ID model hanya jika kemampuan tersebut didukung.`); return []; }
-      throw error;
+      if (!(error instanceof ProviderError) || error.code === "provider_authentication_failed") throw error;
+      const message = `Katalog ${label} belum dapat dibaca. ${error.message} Koneksi teks tetap berhasil; kemampuan ${label} belum terverifikasi.`;
+      warnings.push(message);
+      catalogErrors[path === "models/image" ? "image" : "audio"] = { code: error.code, message };
+      return [];
     }
   };
   const [imageModels,audioModels] = await Promise.all([optional("models/image","gambar"),optional("models/tts","suara")]);
-  return { ok: true, provider: "9router", models, imageModels, audioModels, ...(warnings.length ? { warnings } : {}) };
+  return {
+    ok: true, provider: "9router", tested: "connection", models, imageModels, audioModels,
+    capabilities: { text: { catalogAvailable: true }, image: { catalogAvailable: !catalogErrors.image }, audio: { catalogAvailable: !catalogErrors.audio } },
+    imageModelCapabilities: Object.fromEntries(imageModels.map((model) => [model,{ referenceImages: routerImageReferenceMode(model), referenceLimit: routerImageReferenceLimit(model), sizeStrategy: routerImageSizeStrategy(model), ...(routerImageSizeStrategy(model) === "mapped-ratio" ? { aspectRatios: routerMappedAspectRatios } : {}) }])),
+    ...(warnings.length ? { warnings, catalogErrors } : {}),
+  };
 }
 
 export async function generateWithRouter(input: GenerateInput, featureIntent: string, settings: RouterSettings): Promise<ProviderOutput[]> {
+  assertRouterGeneration(input,settings);
   const model = modelId(input.kind === "text" ? settings.textModel : input.kind === "image" ? settings.imageModel : settings.audioModel,input.kind);
   const prompt = `Task: ${featureIntent}\nUser instructions:\n${input.prompt}\nSelected controls: ${JSON.stringify(input.options)}\nOutput language: ${outputLanguage(input.options.language)}. Preserve uploaded subjects/products and their reference relationships. Do not invent claims or specifications. Return the finished requested output.`;
   let body: Record<string,unknown>;
   let endpoint: string;
+  const warnings: string[] = [];
   if (input.kind === "text") {
     body = { model, stream: false, max_tokens: 8192, messages: [{ role: "user", content: input.images.length ? [{ type: "text", text: prompt },...input.images.map((image) => ({ type: "image_url", image_url: { url: `data:${image.mimeType};base64,${image.data}` } }))] : prompt }] };
     endpoint = "chat/completions";
   } else if (input.kind === "image") {
     body = { model, prompt, n: 1, response_format: "b64_json", output_format: "png" };
     const ratio = String(input.options.aspectRatio ?? input.options.ratio ?? "1:1");
-    const dimensions: Record<string,string> = { "1:1": "1024x1024", "9:16": "1024x1792", "16:9": "1792x1024", "4:5": "1024x1280", "5:4": "1280x1024", "3:4": "1024x1365", "4:3": "1365x1024", "2:3": "1024x1536", "3:2": "1536x1024" };
-    if (dimensions[ratio]) body.size = dimensions[ratio];
+    const size = routerImageSize(model,ratio);
+    if (size) body.size = size;
+    if (/^[1-9][0-9]?:[1-9][0-9]?$/.test(ratio)) {
+      body.prompt = `${prompt}\nRequested aspect ratio: ${ratio}. Choose the closest supported native dimensions without stretching or distorting subjects.`;
+      if (ratio !== "1:1" && !size) warnings.push(`Rasio ${ratio} dikirim sebagai instruksi ke model 9Router. Dimensi akhir mengikuti kemampuan model; rasio persis belum dapat dijamin oleh adapter ini.`);
+    }
+    // Only verified adapter mappings receive size. Native adapters do not have a universal size enum.
     if (input.images.length) {
-      const adapter = model.split("/")[0].toLowerCase();
       const refs = input.images.map((image) => `data:${image.mimeType};base64,${image.data}`);
-      if (["codex","cx","nanobanana","nb"].includes(adapter)) body.images = refs;
-      else if (["fal-ai","fal","black-forest-labs","bfl","runwayml","runway"].includes(adapter) && refs.length === 1) body.image = refs[0];
-      else throw new ProviderError(422,"router_reference_images_unsupported","Model gambar ini belum mendukung gambar referensi melalui adapter 9Router yang terverifikasi. Pilih Codex/Nanobanana untuk beberapa referensi, atau fal-ai/black-forest-labs/runwayml untuk satu referensi. Gunakan Gemini langsung bila perlu.");
+      if (routerImageReferenceMode(model) === "multiple") body.images = refs;
+      else body.image = refs[0];
     }
     // Let the configured router resolve its own upstream media URLs. Studio never fetches a response-supplied URL.
     endpoint = "images/generations?response_format=binary";
   } else {
-    let voiceModel = model;
-    if (settings.voice) {
-      if (!/^[A-Za-z0-9._:-]{1,128}$/.test(settings.voice)) throw new ProviderError(400,"invalid_router_voice","Gunakan voice ID 9Router yang valid, bukan nama atau URL bebas.");
-      const parts = model.split("/");
-      if (["openai","gemini","elevenlabs","el","nvidia","inworld","cartesia","playht"].includes(parts[0])) voiceModel = [...parts.slice(0,parts.length >= 3 ? -1 : parts.length),settings.voice].join("/");
-      else if (parts[0] === "openrouter" && parts.length >= 3) voiceModel = [...parts.slice(0,parts.length >= 4 ? -1 : parts.length),settings.voice].join("/");
-      else throw new ProviderError(422,"router_voice_override_unsupported","Provider ini menggunakan voice di dalam ID model. Kosongkan Voice override dan salin model/voice yang tepat dari katalog 9Router.");
-    }
+    const sourceVoice = input.options.voice;
+    const compatibleGeminiVoice = !settings.voice && model.split("/").length === 2 && model.startsWith("gemini/") && isGeminiVoice(sourceVoice) ? sourceVoice : "";
+    const voiceModel = voiceModelId(model,settings.voice || compatibleGeminiVoice);
+    if (typeof sourceVoice === "string" && sourceVoice && !compatibleGeminiVoice && voiceModel.split("/").at(-1) !== sourceVoice) warnings.push("Pilihan voice pada fitur menggunakan nama voice Gemini. Untuk 9Router, suara mengikuti ID model/voice atau Voice override di Pengaturan AI; pilihan fitur tersebut tidak diterapkan pada provider ini.");
     body = { model: voiceModel, input: input.prompt, language: outputLanguage(input.options.language), ...(typeof input.options.style === "string" ? { style: input.options.style.slice(0,1000) } : {}) };
     endpoint = "audio/speech?response_format=json";
   }
   await assertPublicRouterAddress(settings.baseUrl,settings.allowedHttpOrigins);
   const response = await routerRequest(settings,endpoint,body);
-  if (input.kind === "image" && response.mimeType.startsWith("image/")) return [imageOutput(response.bytes)];
-  if (input.kind === "audio" && (response.mimeType.startsWith("audio/") || response.mimeType === "application/octet-stream")) return [audioOutput(response.bytes,response.mimeType)];
+  if (input.kind === "image" && response.mimeType.startsWith("image/")) return [{ ...imageOutput(response.bytes), ...(warnings.length ? { warnings } : {}) }];
+  if (input.kind === "audio" && (response.mimeType.startsWith("audio/") || response.mimeType === "application/octet-stream")) return [{ ...audioOutput(response.bytes,response.mimeType), ...(warnings.length ? { warnings } : {}) }];
   const result = parseJson(response.bytes);
   if (input.kind === "text") {
     const choices = Array.isArray(result.choices) ? result.choices : [];
@@ -234,7 +287,7 @@ export async function generateWithRouter(input: GenerateInput, featureIntent: st
   }
   if (input.kind === "audio") {
     const mimeType = result.format === "wav" ? "audio/wav" : result.format === "mp3" ? "audio/mpeg" : result.format === "ogg" ? "audio/ogg" : "";
-    return [audioOutput(mediaBytes(result.audio),mimeType)];
+    return [{ ...audioOutput(mediaBytes(result.audio),mimeType), ...(warnings.length ? { warnings } : {}) }];
   }
   const data = Array.isArray(result.data) ? result.data : [];
   const outputs: ProviderOutput[] = [];
@@ -244,5 +297,5 @@ export async function generateWithRouter(input: GenerateInput, featureIntent: st
     else if (item && typeof item === "object" && typeof item.url === "string" && item.url.startsWith("data:image/")) outputs.push(imageOutput(mediaBytes(item.url)));
   }
   if (!outputs.length) throw new ProviderError(422,"router_no_image_data","9Router tidak mengembalikan data gambar base64. Pilih model/adapter yang mendukung response_format=b64_json; URL gambar eksternal tidak diambil oleh server studio.");
-  return outputs;
+  return outputs.map((output) => ({ ...output, ...(warnings.length ? { warnings } : {}) }));
 }
