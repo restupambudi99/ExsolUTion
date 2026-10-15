@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
+import { BRAND_DESCRIPTION, BRAND_NAME } from "@/lib/studio-brand";
 import "./font.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Affiliate GO — Photo Studio",
-  description: "Studio foto, konten produk, desain, dan kreasi AI dalam satu workspace.",
+  title: `${BRAND_NAME} — AI Creative Studio`,
+  description: BRAND_DESCRIPTION,
   openGraph: {
-    title: "Affiliate GO — Photo Studio",
-    description: "Studio foto, konten produk, desain, dan kreasi AI dalam satu workspace.",
+    title: `${BRAND_NAME} — AI Creative Studio`,
+    description: BRAND_DESCRIPTION,
     type: "website",
   },
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: "/favicon.svg?v=exsolution",
+    shortcut: "/favicon.svg?v=exsolution",
   },
 };
 

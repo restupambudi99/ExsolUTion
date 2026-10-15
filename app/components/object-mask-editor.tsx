@@ -129,7 +129,7 @@ export default function ObjectMaskEditor({ imageDataUrl, brushSize, disabled = f
   }
   function download() {
     if (!exportRef.current) return;
-    const anchor = document.createElement("a"); anchor.href = exportRef.current; anchor.download = "aimode-object-mask.png"; anchor.click();
+    const anchor = document.createElement("a"); anchor.href = exportRef.current; anchor.download = "ExsolUTion-object-mask.png"; anchor.click();
   }
 
   return <section className="object-mask-editor" aria-label={text.title} style={{ display: "grid",gap: 12 }}>

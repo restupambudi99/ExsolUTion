@@ -1,8 +1,10 @@
-# Affiliate Go Studio
+# ExsolUTion — AI Creative Studio
+
+Brand ditulis **ExsolUTion**, dengan huruf **E**, **U**, dan **T** kapital; huruf **U** serta **T** pada wordmark berwarna kuning.
 
 Website: [toolsaff.restupambudi.my.id](https://toolsaff.restupambudi.my.id). Panduan koneksi asisten tersedia pada halaman **MCP & Plugin** (`/integrations`) setelah login dan pada [docs/MCP.md](docs/MCP.md) di source ini.
 
-Implementasi SaaS mandiri berdasarkan referensi [Affiliate GO di Gemini Canvas](https://gemini.google.com/share/50a05a6652ae). Registry mencakup **82 menu utama dan 20 mode tambahan**, dalam satu kelompok umum dan delapan kelompok fitur. Formulir menyediakan 780 kontrol dengan 2.888 pilihan bernama. Jumlah ini menunjukkan cakupan menu dan formulir; keberhasilan setiap keluaran AI tetap bergantung pada provider dan akses model.
+Implementasi SaaS mandiri berdasarkan referensi asli [Affiliate GO di Gemini Canvas](https://gemini.google.com/share/50a05a6652ae). Registry mencakup **82 menu utama dan 20 mode tambahan**, dalam satu kelompok umum dan delapan kelompok fitur. Formulir menyediakan 780 kontrol dengan 2.888 pilihan bernama. Jumlah ini menunjukkan cakupan menu dan formulir; keberhasilan setiap keluaran AI tetap bergantung pada provider dan akses model.
 
 Antarmuka dan kode aplikasi ditulis ulang. Nama menu serta label kontrol mengikuti bukti yang diamati melalui REA. Kode executable, prompt panjang, kredensial, autentikasi pembelian, dan layanan backend publisher tidak digunakan oleh aplikasi ini. Artefak investigasi lokal berada di `.rea/reference` pada root workspace, diabaikan Git dan tidak termasuk deployment. Evidence browser: `ev_b5493bc4c78212470f54c5b8489a102fa0fc93df2cb71d46fa7aef54305cf02c`; analisis JavaScript: `ev_69a6992c192f682e8b3545047655247ecdfe6f596a69e3f44da23fd1671ea357`. Bukti tersebut memiliki batas cakupan dan tidak membuktikan seluruh perilaku runtime layanan asli.
 

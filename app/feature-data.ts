@@ -9989,7 +9989,7 @@ export const features: Feature[] = [
         "type": "text",
         "defaultValue": "",
         "required": false,
-        "placeholder": "Contoh: AIMODE"
+        "placeholder": "Contoh: ExsolUTion"
       },
       {
         "id": "studio-profil-bio-input",

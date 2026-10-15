@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     listTools: () => mcpToolDefinitions,
     authorize: async (_method,name,id) => {
       const user = await getChatGPTUser();
-      if (!user) return denied(id,401,"authentication_required","Hubungkan akun yang memiliki akses AFF GO melalui OAuth Sites.");
+      if (!user) return denied(id,401,"authentication_required","Hubungkan akun yang memiliki akses ExsolUTion melalui OAuth Sites.");
       actor = { userId: user.userId, isAdministrator: isStudioAdministrator(user.userId,env) };
       if (name && isAdminMcpTool(name) && !actor.isAdministrator) return denied(id,403,"administrator_required","Akun ini tidak mempunyai hak administrator untuk prompt global.");
       try { await rateLimit(user.userId,name === "update_feature_prompt" ? "mcp-write" : "mcp-read",name === "update_feature_prompt" ? 20 : 120); }
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
 function denied(id: string | number | null, status: number, code: string, message: string) {
   return Response.json({ jsonrpc: "2.0", id, error: { code: -32600, message, data: { code } } },{
     status,
-    headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", ...(status === 401 ? { "WWW-Authenticate": 'Bearer realm="AFF GO"' } : {}), ...(status === 429 ? { "Retry-After": "60" } : {}) },
+    headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", ...(status === 401 ? { "WWW-Authenticate": 'Bearer realm="ExsolUTion"' } : {}), ...(status === 429 ? { "Retry-After": "60" } : {}) },
   });
 }
 

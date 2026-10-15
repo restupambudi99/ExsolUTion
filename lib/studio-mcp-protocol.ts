@@ -12,9 +12,9 @@ export type McpDependencies = {
 };
 
 const modernVersion = MCP_PROTOCOL_VERSIONS[0];
-const serverInfo = { name: "aimode-aff-go", title: "AIMODE AFF GO", version: "1.0.0" };
+const serverInfo = { name: "aimode-aff-go", title: "ExsolUTion", version: "1.0.0" };
 const capabilities = { tools: {} };
-const instructions = "Gunakan tool AFF GO yang tersedia. Akses data dan perubahan mengikuti izin akun yang masuk.";
+const instructions = "Gunakan tool ExsolUTion yang tersedia. Akses data dan perubahan mengikuti izin akun yang masuk.";
 const object = (value: unknown): value is JsonObject => value !== null && typeof value === "object" && !Array.isArray(value);
 const validId = (value: unknown): value is string | number => typeof value === "string" || (typeof value === "number" && Number.isFinite(value));
 const implementation = (value: unknown) => object(value) && typeof value.name === "string" && typeof value.version === "string";

@@ -3,7 +3,7 @@ export const SITE_URL = "https://toolsaff.restupambudi.my.id";
 export const MCP_URL = "https://affiliate-go-studio-restu.nick-hatzis-1514.chatgpt.site/mcp";
 
 export const maintenanceGuide = {
-  project: "AFF GO · AIMODE",
+  project: "ExsolUTion",
   siteUrl: SITE_URL,
   mcpUrl: MCP_URL,
   runtimeChanges: "MCP dapat membaca katalog, memeriksa koneksi AI milik pengguna, meninjau prompt, dan menambahkan arahan prompt. Hanya administrator yang dapat menyimpan perubahan prompt global.",

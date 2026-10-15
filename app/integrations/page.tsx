@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import { requireChatGPTUser } from "@/app/chatgpt-auth";
+import { BRAND_NAME } from "@/lib/studio-brand";
 import ConnectionGuide from "./connection-guide";
 import "./integrations.css";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "MCP & Plugin — AFF GO",
-  description: "Hubungkan AFF GO ke asisten AI untuk memahami fitur dan merawat prompt studio.",
+  title: `MCP & Plugin — ${BRAND_NAME}`,
+  description: `Hubungkan ${BRAND_NAME} ke asisten AI untuk memahami fitur dan merawat prompt studio.`,
   robots: { index: false, follow: false },
 };
 

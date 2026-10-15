@@ -1,14 +1,14 @@
-# MCP & Plugin AFF GO
+# MCP & Plugin ExsolUTion
 
-Panduan ini ditujukan untuk pemeliharaan AFF GO dengan Codex, ChatGPT, atau Claude Code. Panduan visual setelah login tersedia di [halaman MCP & Plugin](https://toolsaff.restupambudi.my.id/integrations).
+Panduan ini ditujukan untuk pemeliharaan ExsolUTion dengan Codex, ChatGPT, atau Claude Code. Panduan visual setelah login tersedia di [halaman MCP & Plugin](https://toolsaff.restupambudi.my.id/integrations).
 
 ## Koneksi
 
-Endpoint remote HTTP MCP: `https://affiliate-go-studio-restu.nick-hatzis-1514.chatgpt.site/mcp`. Nilai canonical berada pada `lib/studio-mcp-info.ts`; gunakan nilai tersebut jika hostname berubah. Autentikasi dan OAuth ditangani platform Sites. Akses mengikuti audience custom AFF GO, bukan email atau identitas yang dikirim dalam argumen tool.
+Endpoint remote HTTP MCP: `https://affiliate-go-studio-restu.nick-hatzis-1514.chatgpt.site/mcp`. Nilai canonical berada pada `lib/studio-mcp-info.ts`; gunakan nilai tersebut jika hostname berubah. Autentikasi dan OAuth ditangani platform Sites. Akses mengikuti audience custom ExsolUTion, bukan email atau identitas yang dikirim dalam argumen tool.
 
 ### Codex dan ChatGPT
 
-Sites menyediakan App dan plugin pribadi untuk Site ini. Buka **Plugins → Personal → Created by you**, pilih plugin AFF GO, lalu **Install** atau **Connect**. Aktifkan koneksinya pada percakapan bila diperlukan. Ketersediaan menu mengikuti aplikasi dan akun Anda. Gunakan plugin yang sudah disediakan agar tidak membuat koneksi ganda; koneksi ini dikelola platform.
+Sites menyediakan App dan plugin pribadi untuk Site ini. Buka **Plugins → Personal → Created by you**, pilih plugin ExsolUTion, lalu **Install** atau **Connect**. Aktifkan koneksinya pada percakapan bila diperlukan. Ketersediaan menu mengikuti aplikasi dan akun Anda. Gunakan plugin yang sudah disediakan agar tidak membuat koneksi ganda; koneksi ini dikelola platform.
 
 Setelah tersambung, minta asisten menjalankan `get_site_summary`. Hasil tool yang berhasil merupakan bukti koneksi, sedangkan status deployment hanya membuktikan hosting berhasil. Akun lain tetap memerlukan izin akses Site dan koneksinya sendiri.
 
@@ -19,11 +19,11 @@ Endpoint MCP memerlukan token OAuth client yang dikelola Sites. Cookie login web
 Jalankan dari terminal project menggunakan Claude Code versi yang mendukung remote HTTP MCP dan OAuth:
 
 ```sh
-claude mcp add --transport http aff-go https://affiliate-go-studio-restu.nick-hatzis-1514.chatgpt.site/mcp
-claude mcp login aff-go
+claude mcp add --transport http exsolution https://affiliate-go-studio-restu.nick-hatzis-1514.chatgpt.site/mcp
+claude mcp login exsolution
 ```
 
-Ikuti login yang dibuka oleh client, memakai akun yang diizinkan mengakses AFF GO. Kemudian jalankan tool `get_site_summary`. Lihat [autentikasi MCP pada dokumentasi resmi Claude Code](https://code.claude.com/docs/en/mcp#authenticate-from-the-command-line). Dukungan client harus dikonfirmasi lewat login dan panggilan tool yang berhasil; keberadaan endpoint tidak otomatis menghubungkan Claude Code.
+Ikuti login yang dibuka oleh client, memakai akun yang diizinkan mengakses ExsolUTion. Kemudian jalankan tool `get_site_summary`. Lihat [autentikasi MCP pada dokumentasi resmi Claude Code](https://code.claude.com/docs/en/mcp#authenticate-from-the-command-line). Dukungan client harus dikonfirmasi lewat login dan panggilan tool yang berhasil; keberadaan endpoint tidak otomatis menghubungkan Claude Code.
 
 ## Tool yang tersedia
 

@@ -15,15 +15,15 @@ const schema = (properties: Record<string, unknown> = {}, required: string[] = [
 const featureId = { type: "string", description: "ID persis dari list_features, misalnya affiliate.", minLength: 1, maxLength: 100 };
 const extra = { type: "string", maxLength: 3000, description: "Arahan tambahan global. String kosong mengembalikan prompt bawaan. Jangan berisi kredensial atau data pribadi." };
 const definitions = [
-  { name: "get_site_summary", title: "Ringkasan AFF GO", description: "Baca ringkasan situs, cakupan fitur, hak pemanggil, dan batas perubahan MCP. Tidak memanggil AI.", inputSchema: schema() },
-  { name: "list_features", title: "Daftar fitur", description: "Cari katalog fitur dan mode AFF GO beserta ID-nya. Gunakan ID ini sebelum meninjau atau mengubah prompt.", inputSchema: schema({ search: { type: "string", maxLength: 100 }, kind: { type: "string", enum: ["image", "text", "audio", "video", "local", "chat", "store"] }, limit: { type: "integer", minimum: 1, maximum: 120 } }) },
+  { name: "get_site_summary", title: "Ringkasan ExsolUTion", description: "Baca ringkasan situs, cakupan fitur, hak pemanggil, dan batas perubahan MCP. Tidak memanggil AI.", inputSchema: schema() },
+  { name: "list_features", title: "Daftar fitur", description: "Cari katalog fitur dan mode ExsolUTion beserta ID-nya. Gunakan ID ini sebelum meninjau atau mengubah prompt.", inputSchema: schema({ search: { type: "string", maxLength: 100 }, kind: { type: "string", enum: ["image", "text", "audio", "video", "local", "chat", "store"] }, limit: { type: "integer", minimum: 1, maximum: 120 } }) },
   { name: "get_feature_details", title: "Detail fitur", description: "Baca kontrol, pilihan formulir, dan kemampuan sebuah fitur. Tidak membaca foto atau riwayat pengguna.", inputSchema: schema({ featureId }, ["featureId"]) },
   { name: "get_ai_connection_status", title: "Status koneksi AI", description: "Periksa status konfigurasi Gemini dan 9Router milik pengguna yang login. Tidak menguji provider berbayar dan tidak mengembalikan API key.", inputSchema: schema() },
   { name: "get_feature_prompt", title: "Baca prompt fitur", description: "Baca prompt bawaan, arahan tambahan global, dan revisi terkini. Simpan revisi untuk update_feature_prompt.", inputSchema: schema({ featureId }, ["featureId"]) },
   { name: "preview_feature_prompt", title: "Pratinjau arahan prompt", description: "Pratinjau arahan fitur dengan tambahan yang diusulkan tanpa menyimpan atau memanggil provider AI. Arahan kualitas, variasi, kontrol, dan referensi tetap diterapkan saat generate.", inputSchema: schema({ featureId, additionalInstructions: extra }, ["featureId", "additionalInstructions"]) },
   { name: "update_feature_prompt", title: "Ubah arahan prompt global", description: "KHUSUS ADMINISTRATOR: simpan arahan tambahan global untuk generate berikutnya. Berlaku bagi semua pengguna. Baca prompt terkini dahulu; wajib expectedRevision dan alasan. String kosong mereset tambahan, dengan revisi baru. Tidak mengubah source atau menerbitkan kode.", inputSchema: schema({ featureId, additionalInstructions: extra, expectedRevision: { type: "integer", minimum: 0 }, reason: { type: "string", minLength: 1, maxLength: 500 } }, ["featureId", "additionalInstructions", "expectedRevision", "reason"]) },
   { name: "list_prompt_changes", title: "Riwayat perubahan prompt", description: "KHUSUS ADMINISTRATOR: baca riwayat perubahan arahan global untuk audit dan pemulihan. Tidak mencakup riwayat kreasi atau kredensial pengguna.", inputSchema: schema({ limit: { type: "integer", minimum: 1, maximum: 50 } }) },
-  { name: "get_maintenance_guide", title: "Panduan pemeliharaan", description: "Baca peta source dan alur pengembangan AFF GO untuk Codex/ChatGPT/Claude Code. Menjelaskan mana yang dapat diubah lewat MCP dan mana yang memerlukan checkout serta publikasi Sites.", inputSchema: schema() },
+  { name: "get_maintenance_guide", title: "Panduan pemeliharaan", description: "Baca peta source dan alur pengembangan ExsolUTion untuk Codex/ChatGPT/Claude Code. Menjelaskan mana yang dapat diubah lewat MCP dan mana yang memerlukan checkout serta publikasi Sites.", inputSchema: schema() },
 ];
 
 export const mcpToolDefinitions = definitions.map((definition) => ({ ...definition,
@@ -70,14 +70,14 @@ function safeProviderStatus(providers: Record<string, unknown>) {
 
 /** The actor is derived by the authenticated route; it can never be supplied in tool arguments. */
 export async function runStudioMcpTool(name: string, args: Record<string, unknown>, actor: McpActor, services: McpServices): Promise<Record<string, unknown>> {
-  if (!actor.userId) throw new McpInputError("authentication_required","Masuk dengan akun yang memiliki akses AFF GO.");
+  if (!actor.userId) throw new McpInputError("authentication_required","Masuk dengan akun yang memiliki akses ExsolUTion.");
   const definition = definitions.find((item) => item.name === name);
   if (!definition) throw new McpInputError("unknown_tool","Tool tidak ditemukan.");
   const allowed = Object.keys(definition.inputSchema.properties);
   if (Object.keys(args).some((key) => !allowed.includes(key))) invalid("Argumen tidak dikenal. Identitas, kredensial, dan hak akses tidak dapat dikirim lewat argumen tool.");
   if (isAdminMcpTool(name) && !actor.isAdministrator) throw new McpInputError("administrator_required","Hanya pemilik yang diberi hak administrator dapat mengubah atau mengaudit prompt global.");
   switch (name) {
-    case "get_site_summary": return { name: "AFF GO", brand: "AIMODE", siteUrl: SITE_URL, mcpUrl: MCP_URL, mainFeatureCount: features.length, modeCount: allFeatures.length-features.length, groups: featureGroups.map((group) => ({ id: group.id, label: group.label })), caller: { role: actor.isAdministrator ? "administrator" : "user", canUpdateGlobalPrompts: actor.isAdministrator }, changes: "Arahan prompt runtime disimpan dengan revisi dan audit. Layout dan kode memerlukan alur pengembangan Sites.", paidGeneration: false };
+    case "get_site_summary": return { name: "ExsolUTion", brand: "ExsolUTion", siteUrl: SITE_URL, mcpUrl: MCP_URL, mainFeatureCount: features.length, modeCount: allFeatures.length-features.length, groups: featureGroups.map((group) => ({ id: group.id, label: group.label })), caller: { role: actor.isAdministrator ? "administrator" : "user", canUpdateGlobalPrompts: actor.isAdministrator }, changes: "Arahan prompt runtime disimpan dengan revisi dan audit. Layout dan kode memerlukan alur pengembangan Sites.", paidGeneration: false };
     case "list_features": {
       const search = (stringArg(args,"search",100,false) ?? "").trim().toLocaleLowerCase("id");
       const kind = stringArg(args,"kind",20,false);

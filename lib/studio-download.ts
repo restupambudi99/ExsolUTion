@@ -8,7 +8,7 @@ const extensions: Record<string, string> = {
 export function downloadFilename(id: string, mimeType?: string): string {
   const safeId = id.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 100) || "result";
   const mime = (mimeType || "").split(";", 1)[0].trim().toLowerCase();
-  return `aimode-${safeId}.${extensions[mime] || "bin"}`;
+  return `ExsolUTion-${safeId}.${extensions[mime] || "bin"}`;
 }
 
 /** Only owned same-origin file routes can be turned into server downloads. */
