@@ -9951,7 +9951,7 @@ export const features: Feature[] = [
         "type": "text",
         "defaultValue": "",
         "required": false,
-        "placeholder": "Contoh: Arul CG"
+        "placeholder": "Contoh: AIMODE"
       },
       {
         "id": "studio-profil-bio-input",
