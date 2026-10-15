@@ -1,4 +1,4 @@
-import { ProviderError, isGeminiVoice, outputLanguage, type ProviderOutput } from "./studio-provider";
+import { ProviderError, isGeminiVoice, outputLanguage, type ProviderDiagnostic, type ProviderOutput } from "./studio-provider";
 import { decodeBase64, IMAGE_MIME_TYPES, isMatchingImage, type GenerateInput } from "./studio-validation";
 import { routerImageReferenceLimit, routerImageReferenceMode, routerImageSizeStrategy, routerMappedAspectRatios } from "./studio-capabilities";
 
@@ -163,9 +163,28 @@ async function routerRequest(settings: RouterSettings, path: string, body?: unkn
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        // Inspect only a bounded, known authentication marker. Never return raw
+        // upstream error bodies, which can contain credentials or account data.
+        let remoteKeyGate = false;
+        if (response.status === 401) {
+          try { remoteKeyGate = parseJson(await readBounded(response,4096)).error === "API key required for remote API access"; }
+          catch { /* The HTTP status remains authoritative if the body is absent or oversized. */ }
+        } else await response.body?.cancel();
+        const endpoint = path.split("?")[0] as ProviderDiagnostic["endpoint"];
+        const catalog = body === undefined;
+        const method = catalog ? "GET" : "POST";
+        const diagnostic: ProviderDiagnostic = {
+          provider: "9router", stage: catalog ? "catalog" : "generation", endpoint, method,
+          upstreamStatus: response.status, reason: response.status === 403 ? "access_denied" : remoteKeyGate ? "remote_api_key_not_accepted" : "unauthorized",
+        };
+        const location = `${method} ${endpoint} (HTTP ${response.status})`;
+        if (response.status === 403) throw new ProviderError(502,"router_access_denied",`Akses 9Router ditolak pada ${location}. Periksa izin endpoint atau proxy pada instance ini; respons ini belum membuktikan bahwa API key salah.`,diagnostic);
+        if (remoteKeyGate) throw new ProviderError(502,"provider_authentication_failed",`9Router menolak autentikasi akses jarak jauh pada ${location}. Gunakan nilai API key lengkap yang terdaftar dan aktif di instance Base URL ini.${catalog ? " Pemeriksaan berhenti sebelum pemilihan atau generasi model." : ""}`,diagnostic);
+        throw new ProviderError(502,"provider_authentication_failed",`Autentikasi 9Router ditolak pada ${location}. Periksa API key dan aturan autentikasi proxy untuk Base URL ini.${catalog ? " Pemeriksaan katalog ini belum menguji akses ke model." : " Periksa juga koneksi provider tujuan pada dashboard 9Router."}`,diagnostic);
+      }
       await response.body?.cancel();
       if (response.status >= 300 && response.status < 400) throw new ProviderError(502,"router_redirect_refused","9Router mengembalikan redirect. Gunakan Base URL API akhir yang tepat.");
-      if (response.status === 401 || response.status === 403) throw new ProviderError(502,"provider_authentication_failed","API key 9Router tidak valid atau tidak mempunyai akses ke model ini.");
       if ([404,405,501].includes(response.status)) throw new ProviderError(422,"router_capability_unavailable","Endpoint atau model ini belum tersedia pada instance 9Router Anda. Periksa versi dan model provider yang terhubung.");
       if (response.status === 429) throw new ProviderError(429,"provider_quota_exceeded","Batas penggunaan 9Router atau provider tujuan tercapai. Periksa kuota di dashboard 9Router.");
       if (response.status === 400 || response.status === 422) throw new ProviderError(422,"router_request_rejected","9Router menolak model atau opsi ini. Pilih model dengan kemampuan yang sesuai dan periksa konfigurasinya.");
@@ -212,14 +231,14 @@ export async function testRouterConnection(settings: RouterSettings) {
   };
   const models = await parseCatalog("models");
   const warnings: string[] = [];
-  const catalogErrors: Record<string,{ code: string; message: string }> = {};
+  const catalogErrors: Record<string,{ code: string; message: string; diagnostic?: ProviderDiagnostic }> = {};
   const optional = async (path: string, label: string) => {
     try { return await parseCatalog(path); }
     catch (error) {
-      if (!(error instanceof ProviderError) || error.code === "provider_authentication_failed") throw error;
+      if (!(error instanceof ProviderError)) throw error;
       const message = `Katalog ${label} belum dapat dibaca. ${error.message} Koneksi teks tetap berhasil; kemampuan ${label} belum terverifikasi.`;
       warnings.push(message);
-      catalogErrors[path === "models/image" ? "image" : "audio"] = { code: error.code, message };
+      catalogErrors[path === "models/image" ? "image" : "audio"] = { code: error.code, message, ...(error.diagnostic ? { diagnostic: error.diagnostic } : {}) };
       return [];
     }
   };

@@ -9,8 +9,17 @@ export const DEFAULT_MODELS = {
 export type ProviderSettings = typeof DEFAULT_MODELS & { apiKey: string };
 export type ProviderOutput = { kind: OutputKind; text?: string; bytes?: Uint8Array; mimeType?: string; warnings?: string[] };
 
+export type ProviderDiagnostic = {
+  provider: "9router";
+  stage: "catalog" | "generation";
+  endpoint: "models" | "models/image" | "models/tts" | "chat/completions" | "images/generations" | "audio/speech";
+  method: "GET" | "POST";
+  upstreamStatus: 401 | 403;
+  reason: "remote_api_key_not_accepted" | "unauthorized" | "access_denied";
+};
+
 export class ProviderError extends Error {
-  constructor(public status: number, public code: string, message: string) { super(message); }
+  constructor(public status: number, public code: string, message: string, public diagnostic?: ProviderDiagnostic) { super(message); }
 }
 
 const API_HOST = "https://generativelanguage.googleapis.com";

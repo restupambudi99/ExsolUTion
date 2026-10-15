@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     return json(result);
   } catch (error) {
     if (error instanceof ValidationError) return errorResponse(new ApiError(400,"invalid_input",error.message));
-    if (error instanceof ProviderError) return errorResponse(new ApiError(error.status,error.code,error.message));
+    if (error instanceof ProviderError) return json({ results: [], error: error.message, code: error.code, ...(error.diagnostic ? { diagnostic: error.diagnostic } : {}) },error.status);
     return errorResponse(error);
   }
 }

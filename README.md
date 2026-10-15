@@ -57,6 +57,8 @@ Pengaturan menampilkan langkah **Hubungkan → Ambil Model → Pilih Model**. Ke
 
 Jika uji koneksi menghasilkan **401 / API key tidak valid**, key belum diterima instance 9Router tersebut. Salin key aktif dari menu API Keys pada dashboard instance yang sama; key Gemini, hash key, atau key untuk server lain tidak dapat menggantikannya. Isi key langsung pada kolom password aplikasi, bukan pada prompt atau URL.
 
+Diagnosis koneksi membedakan status upstream dan endpoint. **401 pada `GET /v1/models` terjadi sebelum pemilihan model**: gate akses remote 9Router belum menerima key. **403** berarti akses endpoint ditolak dan tidak otomatis membuktikan key salah. Jika katalog teks berhasil tetapi katalog gambar/suara ditolak, katalog yang berhasil tetap ditampilkan beserta peringatan kemampuan yang belum terverifikasi. Teks error mentah upstream dan nilai key tidak dikirim balik ke browser.
+
 Tes koneksi memeriksa endpoint daftar model, bukan membuat hasil AI. Daftar chat, gambar, dan suara memakai katalog terpisah. Dukungan foto referensi bergantung pada adaptor upstream 9Router; model yang tidak mendukung referensi menghasilkan pesan yang jelas dan tidak membuang foto secara diam-diam. Kuota dan biaya generasi mengikuti akun provider pengguna. Editor foto lokal tetap bekerja tanpa key.
 
 Provider yang dipilih dan konfigurasi model nonrahasia dapat diingat di browser untuk profil pengguna tersebut. Status key siap dan hasil tes koneksi dibedakan; menyimpan key tidak dianggap sebagai bukti koneksi berhasil. Pengaturan provider tidak dapat diubah saat proses generasi sedang berjalan.
