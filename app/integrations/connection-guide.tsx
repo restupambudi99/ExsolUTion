@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowUpRight, BookOpen, Check, CheckCircle2, ChevronRight, Code2, Copy, FileCode2, Fingerprint, History, Layers3, LoaderCircle, LockKeyhole, MessageSquare, PlugZap, ShieldCheck, SlidersHorizontal, Sparkles, Terminal } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, ArrowUpRight, BookOpen, Check, CheckCircle2, ChevronRight, Code2, Copy, FileCode2, Fingerprint, History, Layers3, LockKeyhole, MessageSquare, PlugZap, ShieldCheck, SlidersHorizontal, Sparkles, Terminal } from "lucide-react";
 import { MCP_URL, SITE_URL } from "@/lib/studio-mcp-info";
 
 const tools = [
@@ -35,58 +35,6 @@ function CopyBlock({ text, label, multiline = false }: { text: string; label: st
   </div>;
 }
 
-function EndpointCheck() {
-  const [check, setCheck] = useState<{ state: "idle" | "pending" | "ready" | "error"; message: string; login?: boolean }>({ state: "idle", message: "Endpoint belum diperiksa pada sesi ini." });
-  const currentRequest = useRef<AbortController | null>(null);
-  useEffect(() => () => { currentRequest.current?.abort(); }, []);
-
-  async function verifyEndpoint() {
-    if (currentRequest.current) return;
-    const controller = new AbortController();
-    currentRequest.current = controller;
-    const timeout = window.setTimeout(() => controller.abort(), 15_000);
-    setCheck({ state: "pending", message: "Memeriksa endpoint dengan akun yang sedang masuk…" });
-    try {
-      const id = crypto.randomUUID();
-      const response = await fetch("/mcp", {
-        method: "POST",
-        credentials: "same-origin",
-        cache: "no-store",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", id, method: "tools/call", params: { name: "get_site_summary", arguments: {} } }),
-        signal: controller.signal,
-      });
-      if (response.status === 401) {
-        setCheck({ state: "error", message: "Sesi login perlu diperbarui sebelum memeriksa endpoint.", login: true });
-        return;
-      }
-      if (response.status === 403) {
-        setCheck({ state: "error", message: "Akun ini belum diizinkan menggunakan endpoint AFF GO." });
-        return;
-      }
-      if (response.status === 429) {
-        setCheck({ state: "error", message: "Batas pemeriksaan tercapai. Tunggu satu menit, lalu coba lagi." });
-        return;
-      }
-      if (!response.ok || !response.headers.get("content-type")?.toLowerCase().includes("application/json")) throw new Error("endpoint_unavailable");
-      const payload = await response.json() as { jsonrpc?: unknown; id?: unknown; error?: unknown; result?: { structuredContent?: { caller?: { role?: unknown } }; isError?: unknown } } | null;
-      const role = payload?.result?.structuredContent?.caller?.role;
-      if (payload?.jsonrpc !== "2.0" || payload.id !== id || payload.error || payload?.result?.isError !== false || typeof role !== "string" || !["administrator", "user"].includes(role)) throw new Error("invalid_endpoint_response");
-      setCheck({ state: "ready", message: `Endpoint MCP siap · ${role === "administrator" ? "Administrator" : "Pengguna"}` });
-    } catch {
-      setCheck({ state: "error", message: "Endpoint belum dapat diperiksa. Pastikan Anda masih login, lalu coba lagi." });
-    } finally {
-      window.clearTimeout(timeout);
-      currentRequest.current = null;
-    }
-  }
-
-  return <div className="integration-endpoint-check">
-    <div className="integration-endpoint-check-row"><button type="button" className="integration-check-button" disabled={check.state === "pending"} onClick={verifyEndpoint} aria-describedby="endpoint-check-note">{check.state === "pending" ? <LoaderCircle size={17} className="spinning" aria-hidden="true" /> : <ShieldCheck size={17} aria-hidden="true" />}Periksa endpoint MCP</button><p className={`integration-endpoint-check-status integration-check-${check.state}`} role="status" aria-live="polite">{check.state === "ready" && <CheckCircle2 size={16} aria-hidden="true" />}<span>{check.message}</span>{check.login && <a href="/signin-with-chatgpt?return_to=%2Fintegrations">Masuk kembali</a>}</p></div>
-    <p id="endpoint-check-note" className="integration-footnote">Pemeriksaan ini menjalankan tool baca menggunakan akun Anda tanpa memanggil provider AI. Hasilnya memeriksa endpoint website; koneksi Codex, ChatGPT, atau Claude Code tetap perlu diuji dari aplikasi tersebut.</p>
-  </div>;
-}
-
 export default function ConnectionGuide() {
   useEffect(() => {
     try {
@@ -109,8 +57,7 @@ export default function ConnectionGuide() {
     <section className="integration-endpoint" aria-labelledby="endpoint-title">
       <div className="integration-section-intro"><span className="integration-section-icon"><PlugZap size={21} aria-hidden="true" /></span><div><h2 id="endpoint-title">Satu endpoint untuk studio Anda</h2><p>HTTP MCP dengan autentikasi yang dikelola Sites.</p></div><span className="integration-label"><LockKeyhole size={13} aria-hidden="true" /> Memerlukan login</span></div>
       <CopyBlock text={MCP_URL} label="Endpoint MCP" />
-      <p className="integration-footnote">Alamat endpoint ini bukan tanda bahwa asisten Anda sudah terhubung. Selesaikan koneksi di aplikasi pilihan, lalu minta asisten menjalankan <code>get_site_summary</code> untuk memeriksanya.</p>
-      <EndpointCheck />
+      <p className="integration-footnote">Selesaikan OAuth di aplikasi pilihan, lalu minta asisten menjalankan <code>get_site_summary</code> untuk memeriksa koneksinya. Endpoint MCP memakai token OAuth tersendiri; sesi login website tidak menggantikan koneksi client.</p>
     </section>
 
     <section className="integration-section" id="connect" aria-labelledby="connect-title">
@@ -118,7 +65,7 @@ export default function ConnectionGuide() {
       <div className="integration-clients">
         <article className="integration-client integration-client-codex"><span className="integration-client-icon"><Code2 size={25} aria-hidden="true" /></span><h3>Codex</h3><p>Gunakan plugin pribadi AFF GO yang disediakan Sites.</p><ol><li>Buka <strong>Plugins → Personal → Created by you</strong>.</li><li>Pilih plugin AFF GO, lalu <strong>Install</strong> atau <strong>Connect</strong>.</li><li>Selesaikan login dan jalankan contoh permintaan di bawah.</li></ol><div className="integration-client-note"><Fingerprint size={15} aria-hidden="true" /> Gunakan koneksi plugin yang dikelola platform.</div></article>
         <article className="integration-client integration-client-chatgpt"><span className="integration-client-icon"><MessageSquare size={25} aria-hidden="true" /></span><h3>ChatGPT</h3><p>Hubungkan plugin AFF GO melalui akses yang tersedia di akun Anda.</p><ol><li>Buka <strong>Plugins → Personal → Created by you</strong> pada permukaan yang menyediakan plugin pribadi.</li><li>Pilih AFF GO, lalu <strong>Install</strong> atau <strong>Connect</strong>.</li><li>Aktifkan koneksinya pada percakapan yang akan dipakai.</li></ol><div className="integration-client-note"><Fingerprint size={15} aria-hidden="true" /> Ketersediaan menu mengikuti akun dan aplikasi Anda.</div></article>
-        <article className="integration-client integration-client-claude"><span className="integration-client-icon"><Terminal size={25} aria-hidden="true" /></span><h3>Claude Code</h3><p>Tambahkan endpoint HTTP jarak jauh, lalu mulai login dari terminal project Anda.</p><CopyBlock text={`claude mcp add --transport http aff-go ${MCP_URL}\nclaude mcp login aff-go`} label="Perintah Claude Code" multiline /><p className="integration-claude-next">Ikuti alur login yang dibuka oleh client. Koneksi perlu dikonfirmasi melalui panggilan tool yang berhasil. <a href="https://code.claude.com/docs/en/mcp#authenticate-from-the-command-line" target="_blank" rel="noreferrer">Panduan resmi Claude Code <ArrowUpRight size={12} aria-hidden="true" /></a></p></article>
+        <article className="integration-client integration-client-claude"><span className="integration-client-icon"><Terminal size={25} aria-hidden="true" /></span><h3>Claude Code</h3><p>Gunakan endpoint HTTP jarak jauh bila client OAuth Anda didukung Sites. Koneksi Claude Code belum diverifikasi pada instalasi ini.</p><CopyBlock text={`claude mcp add --transport http aff-go ${MCP_URL}\nclaude mcp login aff-go`} label="Perintah Claude Code" multiline /><p className="integration-claude-next">Ikuti alur login yang dibuka oleh client. Koneksi perlu dikonfirmasi melalui panggilan tool yang berhasil. <a href="https://code.claude.com/docs/en/mcp#authenticate-from-the-command-line" target="_blank" rel="noreferrer">Panduan resmi Claude Code <ArrowUpRight size={12} aria-hidden="true" /></a></p></article>
       </div>
     </section>
 

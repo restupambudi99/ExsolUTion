@@ -4,7 +4,7 @@ Panduan ini ditujukan untuk pemeliharaan AFF GO dengan Codex, ChatGPT, atau Clau
 
 ## Koneksi
 
-Endpoint remote HTTP MCP: `https://toolsaff.restupambudi.my.id/mcp`. Nilai canonical berada pada `lib/studio-mcp-info.ts`; gunakan nilai tersebut jika hostname berubah. Autentikasi dan OAuth ditangani platform Sites. Akses mengikuti audience custom AFF GO, bukan email atau identitas yang dikirim dalam argumen tool.
+Endpoint remote HTTP MCP: `https://affiliate-go-studio-restu.nick-hatzis-1514.chatgpt.site/mcp`. Nilai canonical berada pada `lib/studio-mcp-info.ts`; gunakan nilai tersebut jika hostname berubah. Autentikasi dan OAuth ditangani platform Sites. Akses mengikuti audience custom AFF GO, bukan email atau identitas yang dikirim dalam argumen tool.
 
 ### Codex dan ChatGPT
 
@@ -12,14 +12,14 @@ Sites menyediakan App dan plugin pribadi untuk Site ini. Buka **Plugins → Pers
 
 Setelah tersambung, minta asisten menjalankan `get_site_summary`. Hasil tool yang berhasil merupakan bukti koneksi, sedangkan status deployment hanya membuktikan hosting berhasil. Akun lain tetap memerlukan izin akses Site dan koneksinya sendiri.
 
-Tombol **Periksa endpoint MCP** pada halaman `/integrations` menjalankan tool baca yang sama menggunakan sesi website Anda. Pemeriksaan tersebut tidak memanggil provider AI dan tidak membuktikan bahwa plugin di aplikasi asisten sudah terhubung.
+Endpoint MCP memerlukan token OAuth client yang dikelola Sites. Cookie login website tidak menggantikannya. Periksa koneksi dengan menjalankan tool baca dari aplikasi asisten setelah OAuth selesai; membuka endpoint atau mengirim request memakai sesi browser saja bukan uji koneksi client.
 
 ### Claude Code
 
 Jalankan dari terminal project menggunakan Claude Code versi yang mendukung remote HTTP MCP dan OAuth:
 
 ```sh
-claude mcp add --transport http aff-go https://toolsaff.restupambudi.my.id/mcp
+claude mcp add --transport http aff-go https://affiliate-go-studio-restu.nick-hatzis-1514.chatgpt.site/mcp
 claude mcp login aff-go
 ```
 
@@ -106,3 +106,5 @@ Untuk publication hosted, gunakan source helper skill Sites dengan pemeriksaan d
 - **OAuth tidak selesai pada client eksternal:** periksa versi dan dukungan remote HTTP MCP/OAuth client. Laporkan koneksi yang belum terverifikasi terpisah dari hosting yang sudah aktif.
 
 Uji perubahan MCP dengan operasi baca dan pratinjau terlebih dahulu. Tidak diperlukan permintaan gambar berbayar untuk membuktikan discovery, otorisasi, atau mekanisme revisi prompt.
+
+Catatan kompatibilitas: koneksi Claude Code perlu diuji pada client pengguna. Metadata OpenID issuer Sites yang diperiksa belum mengiklankan registrasi client dinamis; bila login memerlukan client ID, gunakan client OAuth yang disetujui platform. Jangan menggantinya dengan bypass token hosting. Plugin resmi Codex/ChatGPT menyediakan koneksi yang dikelola platform.

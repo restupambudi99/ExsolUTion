@@ -1,5 +1,6 @@
 export const SITE_URL = "https://toolsaff.restupambudi.my.id";
-export const MCP_URL = `${SITE_URL}/mcp`;
+// Exact endpoint/resource returned by Sites; keep OAuth on its provisioned origin.
+export const MCP_URL = "https://affiliate-go-studio-restu.nick-hatzis-1514.chatgpt.site/mcp";
 
 export const maintenanceGuide = {
   project: "AFF GO · AIMODE",
