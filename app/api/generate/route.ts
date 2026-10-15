@@ -12,6 +12,12 @@ import { claimGenerationRequest, completeGenerationRequest, failGenerationReques
 
 export const dynamic = "force-dynamic";
 
+// Shared by both image providers, including variants and individual batch slots.
+const imagePhotographyDirection = `Visual quality direction for image generation:
+For photographic subjects and photo-based elements, default to hyperrealistic, believable real-world photography with a natural camera-captured appearance. Use physically plausible lighting, consistent shadows and reflections, correct perspective and scale, and natural depth of field. Render lifelike skin with subtle pores and fine hair where people are present, realistic fabric weave, food texture and material surfaces, with restrained color grading and appropriate natural imperfections. Preserve the supplied person's identity and the product's exact shape, colors, packaging, logos and readable label details; do not invent or alter branding or product features.
+Avoid an artificial AI-rendered look: waxy or plastic skin, excessive smoothing or beauty retouching, oversaturated HDR, crunchy oversharpening, cutout halos, melted details, warped geometry, duplicated objects, malformed hands, extra fingers and inconsistent anatomy. Favor believable detail over exaggerated perfection.
+When the task, user instructions, selected style or reference explicitly calls for illustration, cartoon, anime, sketch, 3D art, a logo or graphic design, preserve that requested medium, layout and typography; apply photographic realism only to photographic elements. For image edits, preserve the reference's visual style and unchanged areas while making only the requested changes.`;
+
 function findFeature(id: string, items: Feature[] = features): Feature | undefined {
   for (const feature of items) {
     if (feature.id === id) return feature;
@@ -100,7 +106,7 @@ export async function POST(request: Request) {
       const field = image.fieldId && fields.find((item) => item.id === image.fieldId && item.type === "file");
       return `Reference image ${index + 1}: ${field ? field.label : "uploaded image"}`;
     });
-    const intent = `${feature.promptIntent}\nFeature: ${feature.label}\n${labelledOptions.join("\n")}\n${referenceLabels.join("\n")}`;
+    const intent = `${feature.promptIntent}\nFeature: ${feature.label}\n${labelledOptions.join("\n")}\n${referenceLabels.join("\n")}${input.kind === "image" ? `\n${imagePhotographyDirection}` : ""}`;
     const acceptedRequestId = requestId;
     const execute = async (): Promise<{ status: number; data: GenerationResponse | GenerationFailure }> => {
       try {
