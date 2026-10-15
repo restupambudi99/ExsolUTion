@@ -76,6 +76,26 @@ function parseJson(bytes: Uint8Array): Record<string,unknown> {
   } catch { throw new ProviderError(502,"provider_invalid_response","Format respons provider tidak valid. Pastikan URL mengarah ke API yang kompatibel."); }
 }
 
+async function errorPrefix(response: Response, limit: number) {
+  if (!response.body) return new Uint8Array();
+  const reader = response.body.getReader();
+  const prefix = new Uint8Array(limit);
+  let length = 0;
+  try {
+    while (length < limit) {
+      const item = await reader.read();
+      if (item.done) break;
+      const part = item.value.subarray(0,limit-length);
+      prefix.set(part,length);
+      length += part.byteLength;
+    }
+  } finally {
+    try { await reader.cancel(); } catch { /* Only the bounded marker is needed. */ }
+    reader.releaseLock();
+  }
+  return prefix.subarray(0,length);
+}
+
 export async function assertPublicRouterAddress(baseUrl: string, allowedHttpOrigins: string[] = []) {
   const hostname = new URL(normalizeRouterBaseUrl(baseUrl,allowedHttpOrigins)).hostname;
   // The only IP-literal exception is an administrator-allowlisted public IPv4 origin.
@@ -157,7 +177,8 @@ async function routerRequest(settings: RouterSettings, path: string, body?: unkn
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(),body === undefined ? 20_000 : 120_000);
   try {
-    const response = await fetch(`${normalizeRouterBaseUrl(settings.baseUrl,settings.allowedHttpOrigins)}/${path}`,{
+    const baseUrl = normalizeRouterBaseUrl(settings.baseUrl,settings.allowedHttpOrigins);
+    const response = await fetch(`${baseUrl}/${path}`,{
       method: body === undefined ? "GET" : "POST", redirect: "manual", signal: controller.signal,
       headers: { Authorization: `Bearer ${settings.apiKey}`, Accept: "application/json", ...(body === undefined ? {} : { "Content-Type": "application/json", "X-9Router-Token-Saver": "off" }) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -167,18 +188,25 @@ async function routerRequest(settings: RouterSettings, path: string, body?: unkn
         // Inspect only a bounded, known authentication marker. Never return raw
         // upstream error bodies, which can contain credentials or account data.
         let remoteKeyGate = false;
-        if (response.status === 401) {
-          try { remoteKeyGate = parseJson(await readBounded(response,4096)).error === "API key required for remote API access"; }
-          catch { /* The HTTP status remains authoritative if the body is absent or oversized. */ }
-        } else await response.body?.cancel();
+        let directIpBlock = false;
+        try {
+          const errorBytes = await errorPrefix(response,8192);
+          if (response.status === 401) remoteKeyGate = parseJson(errorBytes).error === "API key required for remote API access";
+          else {
+            const marker = new TextDecoder().decode(errorBytes).toLowerCase();
+            const literalIp = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(new URL(baseUrl).hostname);
+            directIpBlock = literalIp && (marker.includes("direct ip access not allowed") || /\berror(?:\s+code)?\s*[:#]?\s*1003\b/.test(marker));
+          }
+        } catch { /* The HTTP status remains authoritative if the body is absent or oversized. */ }
         const endpoint = path.split("?")[0] as ProviderDiagnostic["endpoint"];
         const catalog = body === undefined;
         const method = catalog ? "GET" : "POST";
         const diagnostic: ProviderDiagnostic = {
           provider: "9router", stage: catalog ? "catalog" : "generation", endpoint, method,
-          upstreamStatus: response.status, reason: response.status === 403 ? "access_denied" : remoteKeyGate ? "remote_api_key_not_accepted" : "unauthorized",
+          upstreamStatus: response.status, reason: directIpBlock ? "cloudflare_direct_ip_blocked" : response.status === 403 ? "access_denied" : remoteKeyGate ? "remote_api_key_not_accepted" : "unauthorized",
         };
         const location = `${method} ${endpoint} (HTTP ${response.status})`;
+        if (directIpBlock) throw new ProviderError(502,"router_domain_required",`Cloudflare memblokir koneksi langsung ke alamat IP pada ${location} (1003). Gunakan Base URL dengan domain HTTPS milik Anda yang mengarah ke VPS 9Router. Penolakan ini terjadi sebelum autentikasi 9Router; validitas API key belum dapat dipastikan.`,diagnostic);
         if (response.status === 403) throw new ProviderError(502,"router_access_denied",`Akses 9Router ditolak pada ${location}. Periksa izin endpoint atau proxy pada instance ini; respons ini belum membuktikan bahwa API key salah.`,diagnostic);
         if (remoteKeyGate) throw new ProviderError(502,"provider_authentication_failed",`9Router menolak autentikasi akses jarak jauh pada ${location}. Gunakan nilai API key lengkap yang terdaftar dan aktif di instance Base URL ini.${catalog ? " Pemeriksaan berhenti sebelum pemilihan atau generasi model." : ""}`,diagnostic);
         throw new ProviderError(502,"provider_authentication_failed",`Autentikasi 9Router ditolak pada ${location}. Periksa API key dan aturan autentikasi proxy untuk Base URL ini.${catalog ? " Pemeriksaan katalog ini belum menguji akses ke model." : " Periksa juga koneksi provider tujuan pada dashboard 9Router."}`,diagnostic);

@@ -55,6 +55,8 @@ Untuk 9Router, isi Base URL dari instance Anda, jalankan **Tes koneksi**, lalu p
 
 Pengaturan menampilkan langkah **Hubungkan → Ambil Model → Pilih Model**. Key saja belum cukup untuk 9Router: pilih model gambar untuk fitur foto, model teks untuk chat/analisis, dan model suara untuk voice over. Model otomatis dipilih hanya jika terdapat tepat satu pilihan yang sesuai; aplikasi tidak menebak ID model. Tombol generate mengarahkan ke pengaturan bila model atau referensi wajib belum lengkap.
 
+**Hosting Cloudflare Workers membutuhkan hostname/domain untuk request provider; IP langsung tidak didukung.** Konfigurasi HTTP/IP yang diizinkan untuk pemeriksaan lokal bukan bukti bahwa endpoint dapat diakses dari hosted Site. Gunakan domain HTTPS milik Anda yang mengarah ke VPS 9Router. Lihat [batasan resmi Cloudflare](https://developers.cloudflare.com/workers/platform/known-issues/#fetch-to-ip-addresses).
+
 Jika uji koneksi menghasilkan **401 / API key tidak valid**, key belum diterima instance 9Router tersebut. Salin key aktif dari menu API Keys pada dashboard instance yang sama; key Gemini, hash key, atau key untuk server lain tidak dapat menggantikannya. Isi key langsung pada kolom password aplikasi, bukan pada prompt atau URL.
 
 Diagnosis koneksi membedakan status upstream dan endpoint. **401 pada `GET /v1/models` terjadi sebelum pemilihan model**: gate akses remote 9Router belum menerima key. **403** berarti akses endpoint ditolak dan tidak otomatis membuktikan key salah. Jika katalog teks berhasil tetapi katalog gambar/suara ditolak, katalog yang berhasil tetap ditampilkan beserta peringatan kemampuan yang belum terverifikasi. Teks error mentah upstream dan nilai key tidak dikirim balik ke browser.

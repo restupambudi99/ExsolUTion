@@ -26,7 +26,7 @@ Audit mencakup formulir, alur provider, API, penyimpanan, dan rendering 102 fitu
 
 ## Status layanan nyata
 
-Uji koneksi pada situs dengan key pengganti yang diisi pemilik masih ditolak oleh instance 9Router dengan pesan autentikasi. Daftar model belum dapat dimuat. Tidak ada klaim keberhasilan generasi gambar, teks, atau suara menggunakan key tersebut. Diperlukan key API aktif yang diterima instance yang sama sebelum pengujian keluaran AI nyata dapat diselesaikan.
+Uji terbaru pada situs dengan key yang diisi pemilik menghasilkan **HTTP 403 pada GET /v1/models**. Pesan lama menggabungkan 401 dan 403, sehingga kesimpulan bahwa key pasti salah ditarik kembali. Daftar model belum dapat dimuat dan validitas key belum dapat ditentukan dari hasil ini. Belum ada klaim keberhasilan generasi gambar, teks, atau suara dengan key tersebut.
 
 Rendering 102 fitur tidak membuktikan mutu 102 keluaran AI. Upscale lokal memakai interpolasi, storyboard berupa rangkaian gambar, Opal tetap layanan eksternal, dan mask merupakan panduan visual; batas ini juga dijelaskan di UI/README.
 
@@ -37,3 +37,5 @@ Endpoint publik yang diberikan pemilik dapat dijangkau. `/api/health` dan `/api/
 Header `Authorization: Bearer` sesuai implementasi resmi 9Router v0.5.55. Gate memeriksa key yang cocok dan aktif pada database instance sebelum handler model berjalan. Bukti tersebut membedakan kegagalan autentikasi remote dari pemilihan model; bukti itu sendiri tidak menentukan apakah key pengguna tidak cocok, nonaktif, tersambung ke instance/database lain, atau header diubah proxy.
 
 Pesan aplikasi sebelumnya menggabungkan HTTP 401/403 dan menyebut akses model secara umum. Diagnosis kini diperjelas dengan status serta endpoint; penolakan katalog opsional tidak membatalkan katalog utama yang sudah berhasil. Tidak ada perubahan key, pembuatan key, atau penonaktifan autentikasi pada VPS.
+
+[Dokumentasi resmi Cloudflare](https://developers.cloudflare.com/workers/platform/known-issues/#fetch-to-ip-addresses) menyatakan fetch dari Workers harus menggunakan hostname, bukan IP langsung. Base URL yang diberikan masih berupa IP publik; konfigurasi ini perlu diganti dengan domain 9Router milik pemilik yang mengarah ke VPS, sebaiknya HTTPS. Koneksi lokal yang berhasil mencapai gate 401 tidak membuktikan koneksi hosted dapat memakai IP tersebut.
