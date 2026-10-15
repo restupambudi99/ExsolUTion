@@ -167,7 +167,7 @@ export const features: Feature[] = [
     "hidden": false,
     "capability": "upscale",
     "limitations": [
-      "Provider ESRGAN khusus belum dikonfigurasi. Hasil AI meningkatkan detail; dimensi unduhan bergantung pada model."
+      "Perbesaran diproses di browser dengan interpolasi berkualitas tinggi, bukan AI ESRGAN. Dimensi hasil mengikuti pengaturan ukuran, maksimal 8192 px per sisi dan 32 megapiksel."
     ]
   },
   {
@@ -180,7 +180,7 @@ export const features: Feature[] = [
     "fields": [
       {
         "id": "buat-model-image-input",
-        "label": "Klik atau seret foto wajah PNG, JPG, WEBP, HEIC - Wajah terlihat jelas",
+        "label": "Klik atau seret foto wajah PNG, JPG, WEBP - Wajah terlihat jelas",
         "type": "file",
         "defaultValue": "",
         "required": false,
@@ -647,7 +647,7 @@ export const features: Feature[] = [
         "fields": [
           {
             "id": "islami-product-input",
-            "label": "📦 Upload foto produk PNG, JPG, HEIC (Max 10MB)",
+            "label": "📦 Upload foto produk PNG, JPG, WEBP (Maks. 25 MB)",
             "type": "file",
             "defaultValue": "",
             "required": true,
@@ -1686,7 +1686,7 @@ export const features: Feature[] = [
       },
       {
         "id": "fb-image-input",
-        "label": "Klik untuk unggah foto produk PNG, JPG, WEBP, HEIC",
+        "label": "Klik untuk unggah foto produk PNG, JPG, WEBP",
         "type": "file",
         "defaultValue": "",
         "required": true,
@@ -4444,7 +4444,7 @@ export const features: Feature[] = [
         "fields": [
           {
             "id": "skincare-image-input",
-            "label": "Klik atau seret gambar produk PNG, JPG, WEBP, HEIC (Bisa lebih dari satu)",
+            "label": "Klik atau seret gambar produk PNG, JPG, WEBP (Bisa lebih dari satu)",
             "type": "file",
             "defaultValue": "",
             "required": true,
@@ -5304,7 +5304,7 @@ export const features: Feature[] = [
           },
           {
             "id": "ba-before-upload",
-            "label": "Upload foto \"before\" PNG, JPG, WEBP, HEIC",
+            "label": "Upload foto \"before\" PNG, JPG, WEBP",
             "type": "file",
             "defaultValue": "",
             "required": true,
@@ -6332,7 +6332,7 @@ export const features: Feature[] = [
       },
       {
         "id": "family-background-input",
-        "label": "Pilih Background PNG, JPG, HEIC",
+        "label": "Pilih Background PNG, JPG, WEBP",
         "type": "file",
         "defaultValue": "",
         "required": false,
@@ -7122,7 +7122,7 @@ export const features: Feature[] = [
       },
       {
         "id": "profesi-child-upload",
-        "label": "👦 Klik untuk upload foto anak Format: JPG, PNG, HEIC",
+        "label": "👦 Klik untuk upload foto anak Format: JPG, PNG, WEBP",
         "type": "file",
         "defaultValue": "",
         "required": true,
@@ -7512,7 +7512,7 @@ export const features: Feature[] = [
     "fields": [
       {
         "id": "wedding-male-upload",
-        "label": "🤵 Klik untuk upload foto pria Format: JPG, PNG, HEIC",
+        "label": "🤵 Klik untuk upload foto pria Format: JPG, PNG, WEBP",
         "type": "file",
         "defaultValue": "",
         "required": true,
@@ -7521,7 +7521,7 @@ export const features: Feature[] = [
       },
       {
         "id": "wedding-female-upload",
-        "label": "👰 Klik untuk upload foto wanita Format: JPG, PNG, HEIC",
+        "label": "👰 Klik untuk upload foto wanita Format: JPG, PNG, WEBP",
         "type": "file",
         "defaultValue": "",
         "required": false,
@@ -9713,7 +9713,7 @@ export const features: Feature[] = [
     "fields": [
       {
         "id": "headshot-input",
-        "label": "👔 Klik atau seret foto Anda PNG, JPG, HEIC (Max 10MB)",
+        "label": "👔 Klik atau seret foto Anda PNG, JPG, WEBP (Maks. 25 MB)",
         "type": "file",
         "defaultValue": "",
         "required": true,
@@ -11091,7 +11091,7 @@ export const features: Feature[] = [
     "fields": [
       {
         "id": "expression-input",
-        "label": "😊 Klik atau seret foto close-up wajah PNG, JPG, HEIC (Max 10MB)",
+        "label": "😊 Klik atau seret foto close-up wajah PNG, JPG, WEBP (Maks. 25 MB)",
         "type": "file",
         "defaultValue": "",
         "required": true,
@@ -11379,7 +11379,7 @@ export const features: Feature[] = [
     "fields": [
       {
         "id": "karikatur-image-input",
-        "label": "Klik atau seret foto di sini PNG, JPG, WEBP, HEIC",
+        "label": "Klik atau seret foto di sini PNG, JPG, WEBP",
         "type": "file",
         "defaultValue": "",
         "required": true,
@@ -13144,7 +13144,7 @@ export const features: Feature[] = [
     "fields": [
       {
         "id": "photoeditor-image-input",
-        "label": "Klik atau seret foto di sini PNG, JPG, WEBP, HEIC",
+        "label": "Klik atau seret foto di sini PNG, JPG, WEBP",
         "type": "file",
         "defaultValue": "",
         "required": true,
@@ -13337,7 +13337,7 @@ export const features: Feature[] = [
     "fields": [
       {
         "id": "beauty-image-input",
-        "label": "Klik atau seret foto di sini PNG, JPG, WEBP, HEIC",
+        "label": "Klik atau seret foto di sini PNG, JPG, WEBP",
         "type": "file",
         "defaultValue": "",
         "required": true,
@@ -13986,7 +13986,7 @@ export const features: Feature[] = [
     "fields": [
       {
         "id": "bgremover-input",
-        "label": "📸 Klik atau seret foto PNG, JPG, HEIC (Max 10MB)",
+        "label": "📸 Klik atau seret foto PNG, JPG, WEBP (Maks. 25 MB)",
         "type": "file",
         "defaultValue": "",
         "required": true,
@@ -14151,7 +14151,7 @@ export const features: Feature[] = [
     "fields": [
       {
         "id": "extender-input",
-        "label": "📸 Klik atau seret foto PNG, JPG, HEIC (Max 10MB)",
+        "label": "📸 Klik atau seret foto PNG, JPG, WEBP (Maks. 25 MB)",
         "type": "file",
         "defaultValue": "",
         "required": true,
@@ -14754,7 +14754,7 @@ export const features: Feature[] = [
     "fields": [
       {
         "id": "analyzer-image-upload",
-        "label": "Klik untuk upload gambar PNG, JPG, WEBP, HEIC (max 10MB)",
+        "label": "Klik untuk upload gambar PNG, JPG, WEBP (Maks. 25 MB)",
         "type": "file",
         "defaultValue": "",
         "required": true,
@@ -15701,7 +15701,7 @@ export const features: Feature[] = [
     "fields": [
       {
         "id": "packaging-product-upload",
-        "label": "Klik untuk upload PNG, JPG, WEBP, HEIC",
+        "label": "Klik untuk upload PNG, JPG, WEBP",
         "type": "file",
         "defaultValue": "",
         "required": false,
@@ -16180,7 +16180,7 @@ export const features: Feature[] = [
     "fields": [
       {
         "id": "banner-bg-input",
-        "label": "Upload foto background PNG, JPG, HEIC (Max 10MB)",
+        "label": "Upload foto background PNG, JPG, WEBP (Maks. 25 MB)",
         "type": "file",
         "defaultValue": "",
         "required": false,
@@ -17561,7 +17561,7 @@ export const features: Feature[] = [
         "fields": [
           {
             "id": "room-upload",
-            "label": "🏠 Klik untuk upload foto kamar Format: JPG, PNG, HEIC",
+            "label": "🏠 Klik untuk upload foto kamar Format: JPG, PNG, WEBP",
             "type": "file",
             "defaultValue": "",
             "required": false,

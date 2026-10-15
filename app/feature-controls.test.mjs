@@ -149,3 +149,21 @@ test("source variation counts override neither the user's choice nor a duplicate
     assert.equal(applicableValues(feature(id), values)[genericId], undefined);
   }
 });
+
+test("upload format claims match the PNG, JPEG, and WebP image pipeline", () => {
+  for (const item of all) {
+    for (const field of item.fields.filter(field => field.type === "file" && field.role !== "video")) {
+      assert.doesNotMatch(`${field.label} ${field.help || ""}`, /\bHEI[CF]\b/i, `${item.id}/${field.id} advertises an unsupported format`);
+      if (field.accept) assert.ok(field.accept.split(",").every(mime => ["image/png", "image/jpeg", "image/webp"].includes(mime)), `${item.id}/${field.id} accepts an unsupported image type`);
+    }
+  }
+});
+
+test("upscale describes the browser interpolation actually used by this tool", () => {
+  const item = feature("upscale");
+  const limitations = item.limitations.join(" ");
+  assert.match(limitations, /browser.*interpolasi/i);
+  assert.match(limitations, /bukan AI ESRGAN/);
+  assert.match(limitations, /8192 px.*32 megapiksel/);
+  assert.doesNotMatch(limitations, /hasil AI meningkatkan detail/i);
+});

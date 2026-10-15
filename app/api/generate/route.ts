@@ -8,6 +8,7 @@ import { assertRouterGeneration, generateWithRouter } from "@/lib/studio-router"
 import { persistGeneration } from "@/lib/studio-storage";
 import { validateGenerate, ValidationError } from "@/lib/studio-validation";
 import { assertObjectMask } from "@/lib/studio-mask";
+import { claimGenerationRequest, completeGenerationRequest, failGenerationRequest, generationFingerprint, generationRequestId, generationRequestState, type GenerationFailure, type GenerationResponse } from "@/lib/studio-generation-requests";
 
 export const dynamic = "force-dynamic";
 
@@ -20,10 +21,12 @@ function findFeature(id: string, items: Feature[] = features): Feature | undefin
 }
 
 export async function POST(request: Request) {
+  let requestId: string | undefined;
   try {
     assertSameOrigin(request);
     const user = await authenticatedUser();
     const raw = await readJson(request, 17 * 1024 * 1024);
+    requestId = generationRequestId(raw.requestId);
     const feature = typeof raw.featureId === "string" ? findFeature(raw.featureId) : undefined;
     if (!feature) throw new ApiError(400, "unknown_feature", "Fitur tidak ditemukan. Pilih fitur dari menu studio.");
     if (feature.kind === "video") throw new ApiError(503, "video_provider_not_configured", "Generator video belum dihubungkan ke provider. Gunakan tautan Google Opal pada halaman fitur.");
@@ -79,22 +82,99 @@ export async function POST(request: Request) {
     // Verify storage before sending a request that can incur provider charges.
     database();
     if (input.kind !== "text") bucket();
-    await rateLimit(user.userId, "generate", 12);
+    const receipt = await claimGenerationRequest(user.userId,requestId,await generationFingerprint(input,selectedProvider));
+    if (!receipt.claimed) {
+      const state = await generationRequestState(receipt.row);
+      if (state.status === "completed") return json(state.data);
+      if (state.status === "failed") return json({ results: [], error: state.error, code: state.code, requestId, ...(state.diagnostic ? { diagnostic: state.diagnostic } : {}) },state.errorStatus);
+      return json(state,202);
+    }
+    try { await rateLimit(user.userId, "generate", 12); }
+    catch (error) {
+      const failure = generationFailure(error,requestId);
+      await failGenerationRequest(user.userId,requestId,failure.data,failure.status);
+      throw error;
+    }
     const referenceLabels = input.images.map((image,index) => {
       if (image.role === "mask") return `Reference image ${index+1}: EDIT MASK, not a second subject/photo. White selects the area to remove; black marks the area to preserve. Use the mask as a visual guide, preserve the source photo outside selected areas as closely as possible, and do not render the mask itself in the result.`;
       const field = image.fieldId && fields.find((item) => item.id === image.fieldId && item.type === "file");
       return `Reference image ${index + 1}: ${field ? field.label : "uploaded image"}`;
     });
     const intent = `${feature.promptIntent}\nFeature: ${feature.label}\n${labelledOptions.join("\n")}\n${referenceLabels.join("\n")}`;
-    const outputs = selectedProvider.provider === "gemini"
-      ? await generateWithGemini(input,intent,selectedProvider.settings)
-      : await generateWithRouter(input,intent,selectedProvider.settings);
-    const persisted = await persistGeneration(user.userId,input,outputs);
-    const warnings = [...new Set([...outputs.flatMap((output) => output.warnings ?? []), ...(input.images.some((image) => image.role === "mask") ? ["Mask digunakan sebagai panduan visual AI, bukan inpainting yang presisi per piksel. Periksa kembali area di luar mask pada hasil akhir."] : [])])];
-    return json({ ...persisted, ...(warnings.length ? { warnings } : {}) });
+    const acceptedRequestId = requestId;
+    const execute = async (): Promise<{ status: number; data: GenerationResponse | GenerationFailure }> => {
+      try {
+        const outputs = selectedProvider.provider === "gemini"
+          ? await generateWithGemini(input,intent,selectedProvider.settings)
+          : await generateWithRouter(input,intent,selectedProvider.settings);
+        const warnings = [...new Set([...outputs.flatMap((output) => output.warnings ?? []), ...(input.images.some((image) => image.role === "mask") ? ["Mask digunakan sebagai panduan visual AI, bukan inpainting yang presisi per piksel. Periksa kembali area di luar mask pada hasil akhir."] : [])])];
+        // Persist warnings with each result so history and request recovery retain
+        // the same capability/precision limits that were shown at generation time.
+        const persisted = await persistGeneration(user.userId,input,outputs.map((output) => ({ ...output, ...(warnings.length ? { warnings } : {}) })),receipt.row.generation_id);
+        const data: GenerationResponse = { ...persisted, ...(warnings.length ? { warnings } : {}), requestId: acceptedRequestId };
+        // The generation itself is a second durable receipt. If the final ledger
+        // update is interrupted, GET/replay reconstructs it without another AI call.
+        await completeGenerationRequest(user.userId,acceptedRequestId,data).catch(() => undefined);
+        return { status: 200, data };
+      } catch (error) {
+        const failure = generationFailure(error,acceptedRequestId);
+        await failGenerationRequest(user.userId,acceptedRequestId,failure.data,failure.status).catch(() => undefined);
+        return failure;
+      }
+    };
+    if (request.headers.get("accept")?.toLowerCase().includes("application/x-ndjson")) return generationStream(acceptedRequestId,execute);
+    const outcome = await execute();
+    return json(outcome.data,outcome.status);
   } catch (error) {
+    if (requestId) { const failure = generationFailure(error,requestId); return json(failure.data,failure.status); }
     if (error instanceof ValidationError) return errorResponse(new ApiError(400,"invalid_input",error.message));
-    if (error instanceof ProviderError) return json({ results: [], error: error.message, code: error.code, ...(error.diagnostic ? { diagnostic: error.diagnostic } : {}) },error.status);
     return errorResponse(error);
   }
+}
+
+function generationFailure(error: unknown, requestId: string): { status: number; data: GenerationFailure } {
+  if (error instanceof ProviderError) return { status: error.status, data: { results: [], error: error.message, code: error.code, requestId, ...(error.diagnostic ? { diagnostic: error.diagnostic } : {}) } };
+  if (error instanceof ValidationError) return { status: 400, data: { results: [], error: error.message, code: "invalid_input", requestId } };
+  if (error instanceof ApiError) return { status: error.status, data: { results: [], error: error.message, code: error.code, requestId } };
+  return { status: 500, data: { results: [], error: "Hasil belum dapat disimpan. Periksa status permintaan atau Riwayat Kreasi sebelum mencoba proses baru.", code: "server_error", requestId } };
+}
+
+function generationStream(requestId: string, execute: () => Promise<{ status: number; data: GenerationResponse | GenerationFailure }>) {
+  const encoder = new TextEncoder();
+  let started = false, closed = false;
+  let heartbeat: ReturnType<typeof setInterval> | undefined;
+  const stopHeartbeat = () => { if (heartbeat !== undefined) clearInterval(heartbeat); };
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(encoder.encode(`${JSON.stringify({ type: "accepted", requestId })}\n`));
+    },
+    pull(controller) {
+      if (started) return;
+      started = true;
+      const emit = (value: unknown) => {
+        if (closed) return;
+        try { controller.enqueue(encoder.encode(`${JSON.stringify(value)}\n`)); }
+        catch { closed = true; stopHeartbeat(); }
+      };
+      heartbeat = setInterval(() => emit({ type: "heartbeat", requestId }),10_000);
+      // highWaterMark zero defers provider work until the response's accepted
+      // chunk is consumed, so headers and the first byte precede the AI request.
+      void execute().then((outcome) => {
+        if (outcome.status === 200) emit({ type: "result", data: outcome.data });
+        else { const failure = outcome.data as GenerationFailure; emit({ type: "error", error: failure.error, code: failure.code, status: outcome.status, requestId, ...(failure.diagnostic ? { diagnostic: failure.diagnostic } : {}) }); }
+      }).catch(() => {
+        emit({ type: "error", error: "Koneksi proses terputus. Periksa status permintaan sebelum membuat proses baru.", code: "generation_status_unknown", status: 503, requestId });
+      }).finally(() => {
+        stopHeartbeat();
+        if (!closed) { closed = true; controller.close(); }
+      });
+    },
+    cancel() {
+      // Best effort only: a disconnected HTTP Worker is not a durable background
+      // job. Keep the pending receipt for recovery; never launch a replacement.
+      closed = true;
+      stopHeartbeat();
+    },
+  },{ highWaterMark: 0 });
+  return new Response(stream,{ headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store, no-transform", "X-Content-Type-Options": "nosniff", "X-Request-Id": requestId, "X-Accel-Buffering": "no" } });
 }

@@ -1,4 +1,5 @@
 import { ApiError, authenticatedUser, database, errorResponse, json } from "@/lib/studio-api";
+import { cleanupDeletedFiles } from "@/lib/studio-file-cleanup";
 
 export const dynamic = "force-dynamic";
 
@@ -7,6 +8,7 @@ type GenerationRow = { id: string; feature_id: string; prompt: string; options_j
 export async function GET(request: Request) {
   try {
     const user = await authenticatedUser();
+    await cleanupDeletedFiles(user.userId);
     const params = new URL(request.url).searchParams;
     const rawCursor = params.get("cursor");
     const cursorParts = rawCursor?.split(":");

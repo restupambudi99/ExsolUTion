@@ -2,7 +2,7 @@ import { bucket, database } from "./studio-api";
 import type { GenerateInput, OutputKind } from "./studio-validation";
 import type { ProviderOutput } from "./studio-provider";
 
-export type StudioResult = { id: string; kind: OutputKind; url?: string; text?: string; mimeType?: string };
+export type StudioResult = { id: string; kind: OutputKind; url?: string; text?: string; mimeType?: string; warnings?: string[] };
 export type FileRow = { id: string; user_id: string; generation_id: string | null; object_key: string; mime_type: string; byte_size: number; original_name: string; created_at: number };
 
 function extension(mime: string) {
@@ -29,16 +29,15 @@ export async function ownedFile(userId: string, id: string): Promise<FileRow | n
   return database().prepare("SELECT * FROM studio_files WHERE id = ? AND user_id = ?").bind(id, userId).first<FileRow>();
 }
 
-export async function persistGeneration(userId: string, input: GenerateInput, outputs: ProviderOutput[]) {
-  const generationId = crypto.randomUUID();
+export async function persistGeneration(userId: string, input: GenerateInput, outputs: ProviderOutput[], generationId: string = crypto.randomUUID()) {
   const results: StudioResult[] = [];
   try {
     for (const output of outputs) {
       if (output.kind === "text") {
-        results.push({ id: crypto.randomUUID(), kind: "text", text: output.text, mimeType: "text/plain" });
+        results.push({ id: crypto.randomUUID(), kind: "text", text: output.text, mimeType: "text/plain", ...(output.warnings?.length ? { warnings: output.warnings } : {}) });
       } else if (output.bytes && output.mimeType) {
         const file = await saveFile(userId, output.bytes, output.mimeType, `${input.featureId}-${Date.now()}.${extension(output.mimeType)}`, generationId);
-        results.push({ id: file.id, kind: output.kind, url: file.url, mimeType: file.mimeType });
+        results.push({ id: file.id, kind: output.kind, url: file.url, mimeType: file.mimeType, ...(output.warnings?.length ? { warnings: output.warnings } : {}) });
       }
     }
     const createdAt = Date.now();
