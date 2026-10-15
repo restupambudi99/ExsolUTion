@@ -85,7 +85,8 @@ export async function assertPublicRouterAddress(baseUrl: string, allowedHttpOrig
   try {
     // DNS requests go only to a fixed public resolver and never carry provider credentials.
     const records = await Promise.all(["A","AAAA"].map(async (type) => {
-      const response = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(hostname)}&type=${type}`,{ headers: { Accept: "application/dns-json" }, redirect: "error", signal: controller.signal });
+      const response = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(hostname)}&type=${type}`,{ headers: { Accept: "application/dns-json" }, redirect: "manual", signal: controller.signal });
+      if (response.status >= 300 && response.status < 400) { await response.body?.cancel(); throw new ProviderError(502,"router_dns_redirect_refused","Resolver DNS mengembalikan redirect yang tidak diizinkan."); }
       if (!response.ok) { await response.body?.cancel(); throw new ProviderError(502,"router_dns_failed","Domain 9Router belum dapat diverifikasi. Periksa DNS publik instance Anda."); }
       const result = parseJson(await readBounded(response,64_000));
       if (result.Status !== 0 && result.Status !== 3) throw new ProviderError(502,"router_dns_failed","DNS instance 9Router belum dapat diakses.");
@@ -114,7 +115,7 @@ async function routerRequest(settings: RouterSettings, path: string, body?: unkn
   const timeout = setTimeout(() => controller.abort(),body === undefined ? 20_000 : 120_000);
   try {
     const response = await fetch(`${normalizeRouterBaseUrl(settings.baseUrl,settings.allowedHttpOrigins)}/${path}`,{
-      method: body === undefined ? "GET" : "POST", redirect: "error", signal: controller.signal,
+      method: body === undefined ? "GET" : "POST", redirect: "manual", signal: controller.signal,
       headers: { Authorization: `Bearer ${settings.apiKey}`, Accept: "application/json", ...(body === undefined ? {} : { "Content-Type": "application/json", "X-9Router-Token-Saver": "off" }) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
@@ -131,7 +132,7 @@ async function routerRequest(settings: RouterSettings, path: string, body?: unkn
   } catch (error) {
     if (error instanceof ProviderError) throw error;
     if (controller.signal.aborted) throw new ProviderError(504,"provider_timeout","9Router membutuhkan waktu terlalu lama. Periksa instance atau coba lagi.");
-    throw new ProviderError(502,"provider_connection_failed","Tidak dapat terhubung ke API 9Router. Periksa Base URL HTTPS dan pastikan tidak mengalihkan permintaan.");
+    throw new ProviderError(502,"provider_connection_failed","Tidak dapat terhubung ke API 9Router. Periksa Base URL, protokol, port, dan koneksi instance; redirect tidak diizinkan.");
   } finally { clearTimeout(timeout); }
 }
 

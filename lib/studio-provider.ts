@@ -40,12 +40,13 @@ async function providerJson(path: string, body: unknown, key: string): Promise<R
   const timeout = setTimeout(() => controller.abort(), body === undefined ? 20_000 : 120_000);
   try {
     const response = await fetch(`${API_HOST}${path}`, {
-      method: body === undefined ? "GET" : "POST", redirect: "error", signal: controller.signal,
+      method: body === undefined ? "GET" : "POST", redirect: "manual", signal: controller.signal,
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
     if (!response.ok) {
       await response.body?.cancel();
+      if (response.status >= 300 && response.status < 400) throw new ProviderError(502,"provider_redirect_refused","Gemini mengembalikan redirect yang tidak diizinkan. Periksa endpoint dan koneksi provider.");
       if (response.status === 400) throw new ProviderError(400, "provider_invalid_request", "Gemini tidak menerima permintaan ini. Periksa instruksi dan opsi model.");
       if (response.status === 401 || response.status === 403) throw new ProviderError(502, "provider_authentication_failed", "API key tidak valid atau belum memiliki akses ke model Gemini.");
       if (response.status === 404) throw new ProviderError(503, "provider_model_unavailable", "Model Gemini belum tersedia untuk API key ini. Pilih model yang tersedia di akun Google AI Studio.");
