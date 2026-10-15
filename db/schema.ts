@@ -58,3 +58,16 @@ export const studioFileCleanup = sqliteTable("studio_file_cleanup", {
   objectKey: text("object_key").notNull().unique(),
   createdAt: integer("created_at").notNull(),
 }, (table) => [index("studio_file_cleanup_user_created_idx").on(table.userId, table.createdAt, table.id)]);
+
+// API keys are AES-GCM ciphertext, bound to owner, provider and endpoint.
+export const studioProviderCredentials = sqliteTable("studio_provider_credentials", {
+  userId: text("user_id").notNull(),
+  provider: text("provider").$type<"gemini" | "9router">().notNull(),
+  encryptedKey: text("encrypted_key"),
+  iv: text("iv"),
+  configJson: text("config_json").notNull(),
+  expiresAt: integer("expires_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+  revision: text("revision").notNull(),
+  deleted: integer("deleted").notNull().default(0),
+}, (table) => [primaryKey({ columns: [table.userId, table.provider] })]);

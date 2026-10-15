@@ -235,6 +235,7 @@ async function routerRequest(settings: RouterSettings, path: string, body?: unkn
       if (response.status >= 300 && response.status < 400) throw new ProviderError(502,"router_redirect_refused","9Router mengembalikan redirect. Gunakan Base URL API akhir yang tepat.");
       if ([404,405,501].includes(response.status)) throw new ProviderError(422,"router_capability_unavailable","Endpoint atau model ini belum tersedia pada instance 9Router Anda. Periksa versi dan model provider yang terhubung.");
       if (response.status === 429) throw new ProviderError(429,"provider_quota_exceeded","Batas penggunaan 9Router atau provider tujuan tercapai. Periksa kuota di dashboard 9Router.");
+      if ([408,504,522,524].includes(response.status)) throw new ProviderError(504,"provider_timeout","9Router atau provider tujuan melewati batas waktu. Permintaan ini tidak diulang otomatis karena hasil upstream belum dapat dipastikan.");
       if (response.status === 400 || response.status === 422) throw new ProviderError(422,"router_request_rejected","9Router menolak model atau opsi ini. Pilih model dengan kemampuan yang sesuai dan periksa konfigurasinya.");
       throw new ProviderError(502,"provider_unavailable","9Router sedang tidak tersedia. Periksa koneksi dan provider pada dashboard instance Anda.");
     }

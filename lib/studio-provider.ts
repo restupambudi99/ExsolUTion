@@ -64,6 +64,7 @@ async function providerJson(path: string, body: unknown, key: string): Promise<R
       if (response.status === 401 || response.status === 403) throw new ProviderError(502, "provider_authentication_failed", "API key tidak valid atau belum memiliki akses ke model Gemini.");
       if (response.status === 404) throw new ProviderError(503, "provider_model_unavailable", "Model Gemini belum tersedia untuk API key ini. Pilih model yang tersedia di akun Google AI Studio.");
       if (response.status === 429) throw new ProviderError(429, "provider_quota_exceeded", "Kuota Gemini habis atau batas permintaan tercapai. Periksa billing dan kuota Google AI Studio.");
+      if ([408,504,522,524].includes(response.status)) throw new ProviderError(504,"provider_timeout","Gemini melewati batas waktu. Permintaan ini tidak diulang otomatis karena hasil upstream belum dapat dipastikan.");
       throw new ProviderError(502, "provider_unavailable", "Gemini sedang tidak tersedia. Coba lagi nanti.");
     }
     if (Number(response.headers.get("content-length")) > MAX_RESPONSE_BYTES) {

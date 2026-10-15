@@ -3,7 +3,8 @@ import { features, type Feature } from "@/app/feature-data";
 import { applicableFields, applicableValues } from "@/app/feature-controls";
 import { ApiError, assertSameOrigin, authenticatedUser, bucket, database, errorResponse, json, rateLimit, readJson } from "@/lib/studio-api";
 import { assertGeminiGeneration, generateWithGemini, ProviderError } from "@/lib/studio-provider";
-import { resolveProvider } from "@/lib/studio-config";
+import { resolveProviderForUser, rememberProviderForUser } from "@/lib/studio-credentials";
+import { imageVariationDirection } from "@/lib/studio-image-variation";
 import { assertRouterGeneration, generateWithRouter } from "@/lib/studio-router";
 import { persistGeneration } from "@/lib/studio-storage";
 import { validateGenerate, ValidationError } from "@/lib/studio-validation";
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
     }
     input.options = options;
 
-    const selectedProvider = resolveProvider(input,env);
+    const selectedProvider = await resolveProviderForUser(input,env,user.userId);
     if (selectedProvider.provider === "gemini") assertGeminiGeneration(input,selectedProvider.settings);
     else assertRouterGeneration(input,selectedProvider.settings);
     // Verify storage before sending a request that can incur provider charges.
@@ -106,7 +107,7 @@ export async function POST(request: Request) {
       const field = image.fieldId && fields.find((item) => item.id === image.fieldId && item.type === "file");
       return `Reference image ${index + 1}: ${field ? field.label : "uploaded image"}`;
     });
-    const intent = `${feature.promptIntent}\nFeature: ${feature.label}\n${labelledOptions.join("\n")}\n${referenceLabels.join("\n")}${input.kind === "image" ? `\n${imagePhotographyDirection}` : ""}`;
+    const intent = `${feature.promptIntent}\nFeature: ${feature.label}\n${labelledOptions.join("\n")}\n${referenceLabels.join("\n")}${input.kind === "image" ? `\n${imagePhotographyDirection}\n${imageVariationDirection(feature,input,fields)}` : ""}`;
     const acceptedRequestId = requestId;
     const execute = async (): Promise<{ status: number; data: GenerationResponse | GenerationFailure }> => {
       try {
@@ -117,6 +118,9 @@ export async function POST(request: Request) {
         // Persist warnings with each result so history and request recovery retain
         // the same capability/precision limits that were shown at generation time.
         const persisted = await persistGeneration(user.userId,input,outputs.map((output) => ({ ...output, ...(warnings.length ? { warnings } : {}) })),receipt.row.generation_id);
+        // Saving connection preferences must never turn a completed paid image
+        // into a failed request or cause its slot to run again.
+        await rememberProviderForUser(input,selectedProvider,env,user.userId).catch(() => undefined);
         const data: GenerationResponse = { ...persisted, ...(warnings.length ? { warnings } : {}), requestId: acceptedRequestId };
         // The generation itself is a second durable receipt. If the final ledger
         // update is interrupted, GET/replay reconstructs it without another AI call.

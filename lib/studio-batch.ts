@@ -8,6 +8,10 @@ export type BatchSlot = {
   requestId?: string;
   output?: GenerationResponse;
   error?: BatchSlotError;
+  /** Number of POST attempts for this slot across explicit runs. */
+  attempts?: number;
+  /** A confirmed transient failure is being retried once in this run. */
+  retrying?: boolean;
 };
 export type GenerationBatch = {
   batchId: string;
@@ -26,6 +30,8 @@ export type RunBatchOptions = {
   onResult?: (output: GenerationResponse, index: number) => void;
   shouldCancel?: () => boolean;
   shouldStop?: (error: unknown) => boolean;
+  /** Override the bounded retry backoff for tests or a scheduler. */
+  retryDelay?: (milliseconds: number) => Promise<void>;
 };
 
 function cloneOutput(output: GenerationResponse): GenerationResponse {
@@ -52,6 +58,19 @@ function fatalFailure(error: unknown): boolean {
   return [401, 403, 429].includes(failure.status || 0) || /^(authentication_required|access_denied|provider_(authentication_failed|token_revoked|not_configured|configuration_invalid)|router_provider_reauthentication_required)$/.test(failure.code || "");
 }
 
+function retryableFailure(failure: BatchSlotError): boolean {
+  // Transport/timeout/malformed-response errors can hide a completed paid
+  // generation. Only an identified, final provider rejection may be retried.
+  return !!failure.requestId && [502, 503].includes(failure.status || 0) && failure.code === "provider_unavailable";
+}
+
+async function retryBackoff(options: RunBatchOptions): Promise<void> {
+  if (options.retryDelay) { await options.retryDelay(750); return; }
+  for (let waited = 0; waited < 750 && !options.shouldCancel?.(); waited += 75) {
+    await new Promise<void>(resolve => setTimeout(resolve, 75));
+  }
+}
+
 export function createBatch(featureId: string, total: number): GenerationBatch {
   if (!/^[a-zA-Z0-9_-]{1,100}$/.test(featureId)) throw new Error("Fitur batch tidak valid.");
   if (!Number.isInteger(total) || total < 1 || total > 10) throw new Error("Jumlah gambar harus antara 1 dan 10.");
@@ -67,7 +86,7 @@ export function createBatch(featureId: string, total: number): GenerationBatch {
 export function retryFailed(batch: GenerationBatch): GenerationBatch {
   const retry = snapshot(batch);
   retry.runIndexes = retry.slots.filter(slot => slot.status === "failed").map(slot => slot.index);
-  retry.slots = retry.slots.map(slot => slot.status === "failed" ? { index: slot.index, status: "queued" } : slot);
+  retry.slots = retry.slots.map(slot => slot.status === "failed" ? { index: slot.index, status: "queued", ...(slot.attempts ? { attempts: slot.attempts } : {}) } : slot);
   return retry;
 }
 
@@ -77,7 +96,7 @@ export function batchSummary(batch: GenerationBatch): BatchSummary {
   return summary;
 }
 
-/** Sequential requests, with no automatic replay of any previously sent slot. */
+/** Sequential slots, with at most one retry of an identified transient failure. */
 export async function runBatch(batch: GenerationBatch, options: RunBatchOptions): Promise<GenerationBatch> {
   let current = snapshot(batch);
   // Neither an interrupted request nor another live runner may be interpreted as
@@ -92,25 +111,43 @@ export async function runBatch(batch: GenerationBatch, options: RunBatchOptions)
     current = { ...current, slots: current.slots.map(slot => slot.status === "queued" && selected.has(slot.index) ? { ...slot, status: "cancelled" } : slot) };
     options.onUpdate?.(snapshot(current));
   };
+  let stopBatch = false;
   for (const slot of current.slots) {
     if (!selected.has(slot.index) || slot.status !== "queued") continue;
     if (options.shouldCancel?.()) { cancelQueued(); break; }
-    update(slot.index, { status: "running" });
-    let output: GenerationResponse;
-    try {
-      output = await options.run(slot.index, current.batchId);
-      if (!output.results?.length) throw Object.assign(new Error("Provider tidak mengembalikan hasil gambar."), { code: "provider_empty_response", requestId: output.requestId });
-    } catch (error) {
-      const unresolved = options.isUnresolved(error);
-      const failure = describeError(error);
-      update(slot.index, { status: unresolved ? "unresolved" : "failed", error: failure, ...(failure.requestId ? { requestId: failure.requestId } : {}) });
-      if (unresolved || fatalFailure(error) || options.shouldStop?.(error)) break;
-      continue;
+    let automaticRetries = 0;
+    let attempts = slot.attempts || 0;
+    while (true) {
+      attempts++;
+      update(slot.index, { status: "running", attempts, retrying: automaticRetries > 0, error: undefined, requestId: undefined });
+      let output: GenerationResponse;
+      try {
+        // The caller creates a fresh request ID for each attempt. Successful
+        // slots are never selected again, including during an explicit retry.
+        output = await options.run(slot.index, current.batchId);
+        if (!output.results?.length) throw Object.assign(new Error("Provider tidak mengembalikan hasil gambar."), { code: "provider_empty_response", requestId: output.requestId });
+      } catch (error) {
+        const unresolved = options.isUnresolved(error);
+        const failure = describeError(error);
+        const stop = unresolved || fatalFailure(error) || !!options.shouldStop?.(error);
+        if (!stop && automaticRetries === 0 && retryableFailure(failure) && !options.shouldCancel?.()) {
+          update(slot.index, { status: "running", retrying: true, error: failure, requestId: failure.requestId });
+          await retryBackoff(options);
+          if (!options.shouldCancel?.()) { automaticRetries++; continue; }
+          update(slot.index, { status: "failed", retrying: false, error: failure, requestId: failure.requestId });
+          cancelQueued(); stopBatch = true; break;
+        }
+        update(slot.index, { status: unresolved ? "unresolved" : "failed", retrying: false, error: failure, ...(failure.requestId ? { requestId: failure.requestId } : {}) });
+        if (stop) stopBatch = true;
+        break;
+      }
+      // Mark the paid request completed before invoking presentation callbacks.
+      // A UI callback error must never make this slot eligible for another POST.
+      update(slot.index, { status: "completed", retrying: false, output: cloneOutput(output), error: undefined, ...(output.requestId ? { requestId: output.requestId } : {}) });
+      options.onResult?.(cloneOutput(output), slot.index);
+      break;
     }
-    // Mark the paid request completed before invoking presentation callbacks.
-    // A UI callback error must never make this slot eligible for another POST.
-    update(slot.index, { status: "completed", output: cloneOutput(output), error: undefined, ...(output.requestId ? { requestId: output.requestId } : {}) });
-    options.onResult?.(cloneOutput(output), slot.index);
+    if (stopBatch) break;
   }
   return snapshot(current);
 }
