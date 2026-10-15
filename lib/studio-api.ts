@@ -88,7 +88,7 @@ export function validId(value: string) {
   return value;
 }
 
-export async function rateLimit(userId: string, action: "generate" | "upload", maximum: number) {
+export async function rateLimit(userId: string, action: "generate" | "upload" | "provider-test", maximum: number) {
   const now = Date.now();
   const row = await database().prepare(`INSERT INTO studio_rate_limits (id, window_started_at, hits) VALUES (?, ?, 1)
     ON CONFLICT(id) DO UPDATE SET

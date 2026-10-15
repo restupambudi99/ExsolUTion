@@ -35,14 +35,29 @@ Nama environment tersedia di `.env.example`:
 
 | Variable | Fungsi / default aplikasi |
 | --- | --- |
-| `GEMINI_API_KEY` | Key Google Gemini milik pengguna; diperlukan untuk fitur AI. |
+| `GEMINI_API_KEY` | Key Google Gemini untuk provider Gemini. |
 | `GEMINI_IMAGE_MODEL` | `gemini-3.1-flash-image` |
 | `GEMINI_TEXT_MODEL` | `gemini-3.8-flash` |
 | `GEMINI_AUDIO_MODEL` | `gemini-3.8-flash-tts` |
+| `NINEROUTER_API_KEY` | Key 9Router untuk koneksi server opsional. |
+| `NINEROUTER_BASE_URL` | Base URL publik instance 9Router, termasuk `/v1`; HTTPS diprioritaskan. |
+| `NINEROUTER_ALLOWED_HTTP_ORIGINS` | Origin HTTP publik yang diizinkan eksplisit oleh administrator, dipisahkan koma. |
+| `NINEROUTER_TEXT_MODEL` | ID model teks dari instance 9Router. |
+| `NINEROUTER_IMAGE_MODEL` | ID model gambar dari instance 9Router. |
+| `NINEROUTER_AUDIO_MODEL` | ID model suara dari instance 9Router. |
+| `NINEROUTER_VOICE` | Override voice opsional, jika adaptor 9Router memerlukannya. |
 
 Pilih override model yang tersedia bagi akun API pengguna. Pada hosted Site, atur key sebagai **runtime secret melalui Sites**, lalu deploy ulang saved version agar konfigurasi diterapkan. Jangan menaruh key pada source, manifest hosting, atau bundle client.
 
-Pengaturan AI pada antarmuka juga menerima key sementara. Key hanya berada dalam memori sesi browser dan dikirim ke API server saat generate; tidak disimpan pada localStorage atau riwayat. API server meneruskan permintaan ke Google. Kuota dan biaya mengikuti akun provider pengguna. Editor foto lokal tetap bekerja tanpa key.
+Pengaturan AI menyediakan pilihan **Gemini** atau **9Router** dan menunjukkan provider yang sedang aktif. Key masing-masing provider disimpan terpisah dalam memori sesi, tetap tersedia saat berganti provider, dan hilang setelah reload atau keluar. Key tidak masuk localStorage, database preferensi, atau riwayat. Aplikasi mengirim hanya key provider yang dipilih. Key yang diisi pengguna mendapat prioritas atas key server untuk provider tersebut; perpindahan provider tidak melakukan fallback otomatis ke provider lain.
+
+Untuk 9Router, isi Base URL dari instance Anda, jalankan **Tes koneksi**, lalu pilih ID model teks, gambar, dan suara dari katalog yang tersedia atau masukkan ID yang sesuai. Tidak ada Base URL cloud universal yang diasumsikan. Situs hosted membutuhkan endpoint publik; `localhost` pada komputer pengguna tidak dapat dijangkau Worker hosted. HTTPS diprioritaskan. Endpoint HTTP hanya diterima bila origin persis terdaftar pada `NINEROUTER_ALLOWED_HTTP_ORIGINS`; alamat loopback, metadata, dan jaringan privat tetap ditolak. URL yang memuat username, password, atau query ditolak. Pengaturan menampilkan keterangan bahwa key dan input ke origin HTTP dikirim tanpa enkripsi. Konfigurasi Site ini memakai endpoint yang diberikan pemilik: `http://38.47.191.228:20128/v1`.
+
+Tes koneksi memeriksa endpoint daftar model, bukan membuat hasil AI. Daftar chat, gambar, dan suara memakai katalog terpisah. Dukungan foto referensi bergantung pada adaptor upstream 9Router; model yang tidak mendukung referensi menghasilkan pesan yang jelas dan tidak membuang foto secara diam-diam. Kuota dan biaya generasi mengikuti akun provider pengguna. Editor foto lokal tetap bekerja tanpa key.
+
+Provider yang dipilih dan konfigurasi model nonrahasia dapat diingat di browser untuk profil pengguna tersebut. Status key siap dan hasil tes koneksi dibedakan; menyimpan key tidak dianggap sebagai bukti koneksi berhasil. Pengaturan provider tidak dapat diubah saat proses generasi sedang berjalan.
+
+Kontrak endpoint 9Router mengikuti [dokumentasi resmi](https://github.com/decolua/9router): chat `/chat/completions`, gambar `/images/generations`, dan suara `/audio/speech`. Model dan format yang tersedia mengikuti versi serta koneksi upstream pada instance pengguna.
 
 ## Akun, penyimpanan, dan publishing
 
@@ -56,7 +71,7 @@ Publikasikan melalui workflow plugin Sites. Pertahankan `project_id` dan binding
 
 - **Upscale** memakai interpolasi canvas berkualitas tinggi 2×/4×. Layanan ESRGAN berbayar pada referensi tidak terhubung; interpolasi tidak menghasilkan detail AI yang sama.
 - **Photo Editor** memproses foto pada browser: 20 preset, delapan penyesuaian cahaya/warna, grain, crop, rotasi, flip, resize, dan export. Parameter preset merupakan implementasi baru.
-- **Video Analyzer** mengambil frame secara lokal, lalu menganalisis gambar frame melalui Gemini. **Video Frames** dan **Story Board** menghasilkan rangkaian gambar; bukan file film hasil rendering.
-- **Opal** membuka workflow Google Opal eksternal. Referensi harus diunggah kembali di sana; akses, kuota, dan rendering mengikuti layanan eksternal tersebut.
+- **Video Analyzer** mengambil frame secara lokal, lalu menganalisis gambar frame melalui provider yang dipilih. **Video Frames** dan **Story Board** menghasilkan rangkaian gambar; bukan file film hasil rendering.
+- **Opal** membuka halaman Google Opal eksternal. Referensi harus diunggah kembali di sana; akses, kuota, dan rendering mengikuti layanan eksternal tersebut.
 - **Face Swap** dan **Hapus Background** memakai provider gambar yang dikonfigurasi, menggantikan web view eksternal pada referensi. Ketepatan wajah, tepi cutout, dan transparansi bergantung pada model.
 - Pembayaran, langganan publisher, dan aktivasi email pembelian tidak dikloning. Hasil AI tidak dapat dijamin identik dengan referensi. Antarmuka menyediakan Indonesia, English, dan Melayu; beberapa istilah pilihan mengikuti label sumber.

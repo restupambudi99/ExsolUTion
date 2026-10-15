@@ -1,7 +1,9 @@
 import { env } from "cloudflare:workers";
 import { features, type Feature } from "@/app/feature-data";
 import { ApiError, assertSameOrigin, authenticatedUser, bucket, database, errorResponse, json, rateLimit, readJson } from "@/lib/studio-api";
-import { DEFAULT_MODELS, generateWithGemini, ProviderError } from "@/lib/studio-provider";
+import { generateWithGemini, ProviderError } from "@/lib/studio-provider";
+import { resolveProvider } from "@/lib/studio-config";
+import { generateWithRouter } from "@/lib/studio-router";
 import { persistGeneration } from "@/lib/studio-storage";
 import { validateGenerate, ValidationError } from "@/lib/studio-validation";
 
@@ -57,8 +59,7 @@ export async function POST(request: Request) {
     }
     input.options = options;
 
-    const apiKey = env.GEMINI_API_KEY?.trim() || input.apiKey;
-    if (!apiKey) throw new ApiError(503, "provider_not_configured", "AI belum aktif. Isi Gemini API key di Pengaturan untuk sesi ini, atau konfigurasi GEMINI_API_KEY pada server.");
+    const selectedProvider = resolveProvider(input,env);
     // Verify storage before sending a request that can incur provider charges.
     database();
     if (input.kind !== "text") bucket();
@@ -68,12 +69,9 @@ export async function POST(request: Request) {
       return `Reference image ${index + 1}: ${field ? field.label : "uploaded image"}`;
     });
     const intent = `${feature.promptIntent}\nFeature: ${feature.label}\n${labelledOptions.join("\n")}\n${referenceLabels.join("\n")}`;
-    const outputs = await generateWithGemini(input,intent, {
-      apiKey,
-      imageModel: env.GEMINI_IMAGE_MODEL || DEFAULT_MODELS.imageModel,
-      textModel: env.GEMINI_TEXT_MODEL || DEFAULT_MODELS.textModel,
-      audioModel: env.GEMINI_AUDIO_MODEL || DEFAULT_MODELS.audioModel,
-    });
+    const outputs = selectedProvider.provider === "gemini"
+      ? await generateWithGemini(input,intent,selectedProvider.settings)
+      : await generateWithRouter(input,intent,selectedProvider.settings);
     return json(await persistGeneration(user.userId,input,outputs));
   } catch (error) {
     if (error instanceof ValidationError) return errorResponse(new ApiError(400,"invalid_input",error.message));

@@ -1,12 +1,14 @@
 export type OutputKind = "image" | "text" | "audio";
+export type StudioProvider = "gemini" | "9router";
+export type RouterConfig = { baseUrl?: string; textModel?: string; imageModel?: string; audioModel?: string; voice?: string };
+export type ProviderSelection = { provider?: StudioProvider; apiKey?: string; routerConfig?: RouterConfig };
 export type InputImage = { data: string; mimeType: string; fieldId?: string };
-export type GenerateInput = {
+export type GenerateInput = ProviderSelection & {
   featureId: string;
   prompt: string;
   kind: OutputKind;
   options: Record<string, unknown>;
   images: InputImage[];
-  apiKey?: string;
 };
 
 export class ValidationError extends Error {}
@@ -53,6 +55,30 @@ export function safeOptions(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
+export function validateProviderSelection(value: Record<string, unknown>): ProviderSelection {
+  const provider = value.provider === undefined ? "gemini" : value.provider;
+  if (provider !== "gemini" && provider !== "9router") throw new ValidationError("Provider tidak valid. Pilih Gemini atau 9Router.");
+  let apiKey: string | undefined;
+  if (value.apiKey !== undefined && value.apiKey !== "") {
+    if (typeof value.apiKey !== "string") throw new ValidationError("Format API key tidak valid.");
+    const key = value.apiKey.trim();
+    if (provider === "gemini" ? !/^[A-Za-z0-9_-]{20,256}$/.test(key) : !/^[\x21-\x7e]{1,4096}$/.test(key)) throw new ValidationError("Format API key tidak valid.");
+    apiKey = key;
+  }
+  let routerConfig: RouterConfig | undefined;
+  if (provider === "9router" && value.routerConfig !== undefined) {
+    if (!value.routerConfig || typeof value.routerConfig !== "object" || Array.isArray(value.routerConfig)) throw new ValidationError("Konfigurasi 9Router tidak valid.");
+    routerConfig = {};
+    for (const [key,maxLength] of [["baseUrl",2048],["textModel",256],["imageModel",256],["audioModel",256],["voice",128]] as const) {
+      const item = (value.routerConfig as Record<string, unknown>)[key];
+      if (item === undefined || item === "") continue;
+      if (typeof item !== "string" || item.trim().length > maxLength || /[\x00-\x1f\x7f]/.test(item)) throw new ValidationError(`Konfigurasi 9Router ${key} tidak valid.`);
+      routerConfig[key] = item.trim();
+    }
+  }
+  return { provider, ...(apiKey ? { apiKey } : {}), ...(routerConfig ? { routerConfig } : {}) };
+}
+
 export function validateGenerate(value: Record<string, unknown>): GenerateInput {
   if (typeof value.featureId !== "string" || !/^[a-zA-Z0-9_-]{1,100}$/.test(value.featureId)) throw new ValidationError("Pilih fitur yang valid.");
   if (typeof value.prompt !== "string" || !value.prompt.trim() || value.prompt.length > 20_000) throw new ValidationError("Isi instruksi antara 1 dan 20.000 karakter.");
@@ -72,10 +98,5 @@ export function validateGenerate(value: Record<string, unknown>): GenerateInput 
   });
   if (total > MAX_INPUT_IMAGE_BYTES) throw new ValidationError("Total gambar maksimal 12 MB.");
   if (value.kind === "audio" && images.length) throw new ValidationError("Fitur suara menerima teks, bukan gambar.");
-  let apiKey: string | undefined;
-  if (value.apiKey !== undefined && value.apiKey !== "") {
-    if (typeof value.apiKey !== "string" || !/^[A-Za-z0-9_-]{20,256}$/.test(value.apiKey.trim())) throw new ValidationError("Format API key tidak valid.");
-    apiKey = value.apiKey.trim();
-  }
-  return { featureId: value.featureId, prompt: value.prompt.trim(), kind: value.kind, options, images, apiKey };
+  return { featureId: value.featureId, prompt: value.prompt.trim(), kind: value.kind, options, images, ...validateProviderSelection(value) };
 }

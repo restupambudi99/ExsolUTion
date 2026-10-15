@@ -37,12 +37,12 @@ export function outputLanguage(value: unknown) {
 
 async function providerJson(path: string, body: unknown, key: string): Promise<Record<string, unknown>> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 120_000);
+  const timeout = setTimeout(() => controller.abort(), body === undefined ? 20_000 : 120_000);
   try {
     const response = await fetch(`${API_HOST}${path}`, {
-      method: "POST", redirect: "error", signal: controller.signal,
+      method: body === undefined ? "GET" : "POST", redirect: "error", signal: controller.signal,
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-      body: JSON.stringify(body),
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
     if (!response.ok) {
       await response.body?.cancel();
@@ -77,6 +77,13 @@ async function providerJson(path: string, body: unknown, key: string): Promise<R
     if (controller.signal.aborted) throw new ProviderError(504, "provider_timeout", "Gemini membutuhkan waktu terlalu lama. Coba kembali dengan instruksi lebih sederhana.");
     throw new ProviderError(502, "provider_connection_failed", "Tidak dapat terhubung ke Gemini. Coba lagi nanti.");
   } finally { clearTimeout(timeout); }
+}
+
+export async function testGeminiConnection(settings: ProviderSettings) {
+  const response = await providerJson("/v1beta/models?pageSize=1000",undefined,settings.apiKey);
+  if (!Array.isArray(response.models)) throw new ProviderError(502,"provider_invalid_response","Katalog model Gemini tidak valid.");
+  const models = [...new Set(response.models.filter((item) => item && typeof item === "object" && typeof item.name === "string" && /^models\/[a-z0-9.-]{1,150}$/.test(item.name) && !item.name.includes(settings.apiKey)).map((item) => String(item.name).replace(/^models\//,"")))];
+  return { ok: true, provider: "gemini", models, imageModels: models.filter((model) => /image|banana|imagen/.test(model)), audioModels: models.filter((model) => /tts/.test(model)) };
 }
 
 function binaryOutput(data: unknown, mime: unknown, kind: "image" | "audio"): ProviderOutput {
