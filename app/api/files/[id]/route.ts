@@ -1,5 +1,6 @@
 import { ApiError, authenticatedUser, bucket, errorResponse, validId } from "@/lib/studio-api";
 import { ownedFile } from "@/lib/studio-storage";
+import { downloadFilename } from "@/lib/studio-download";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,10 @@ async function serveFile(request: Request, { params }: RouteContext, headOnly = 
     } });
     const object = headOnly ? await bucket().head(file.object_key) : await bucket().get(file.object_key, range ? { range } : undefined);
     if (!object) throw new ApiError(404, "not_found", "File tidak ditemukan.");
+    const filename = downloadFilename(file.id, file.mime_type);
+    const disposition = new URL(request.url).searchParams.get("download") === "1"
+      ? `attachment; filename="${filename}"; filename*=UTF-8''${filename}`
+      : `inline; filename*=UTF-8''${encodeURIComponent(file.original_name)}`;
     return new Response(headOnly ? null : (object as R2ObjectBody).body, {
       status: range ? 206 : 200,
       headers: {
@@ -42,7 +47,7 @@ async function serveFile(request: Request, { params }: RouteContext, headOnly = 
         "Content-Length": String(range ? range.length : object.size),
         "Accept-Ranges": "bytes",
         ...(range ? { "Content-Range": `bytes ${range.offset}-${range.offset + range.length - 1}/${object.size}` } : {}),
-        "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(file.original_name)}`,
+        "Content-Disposition": disposition,
         "Cache-Control": "private, no-store",
         "X-Content-Type-Options": "nosniff",
         "Cross-Origin-Resource-Policy": "same-origin",
