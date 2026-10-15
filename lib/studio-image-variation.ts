@@ -1,92 +1,67 @@
 import type { Feature, FeatureField } from "@/app/feature-data";
 import type { GenerateInput } from "./studio-validation";
 
-type CreativeBrief = { title: string; story: string; camera: string; composition: string; action: string };
+type CreativeFamily = { id: string; title: string; camera: string; composition: string; story: string; scenes: string[] };
 
-// These are alternative art directions, not new product specifications or locations.
-// A seeded permutation gives every slot a different brief and keeps failed-slot retries stable.
-const briefs: CreativeBrief[] = [
+// Each complete group of four slots gets one of every family. Similar packshots
+// must not look varied only on paper. The batch seed keeps explicit retries stable.
+const families: CreativeFamily[] = [
   {
-    title: "Quiet hero",
-    story: "Give the main subject a confident, uncluttered visual presence; make its real shape and recognizable details the reason the frame works.",
-    camera: "Use a convincing eye-level three-quarter view, with enough distance to keep the main subject intact.",
-    composition: "Build a strong off-center focal point with deliberate breathing room and a clean visual hierarchy.",
-    action: "Choose a calm, intentional presentation moment; if a person is requested, use a relaxed, natural interaction with the subject.",
+    id: "hero-eye-level", title: "Architectural hero",
+    camera: "MANDATORY unless the user fixed a viewpoint: photograph at product eye level, with normal-lens perspective and a clearly readable front label. This is a strong hero portrait, not an overhead, macro or wide environmental frame.",
+    composition: "Keep the whole product as the dominant visual anchor, occupying roughly 55–70% of frame height, with purposeful asymmetry and substantial clean space. Use a distinct silhouette against the set.",
+    story: "Present the accurate product as a confident editorial hero with a deliberately designed set and restrained, product-relevant styling.",
+    scenes: [
+      "Build a sculptural plinth-and-panel set in a theme-appropriate material and palette; an understated contextual accessory may support the story.",
+      "Build an architectural niche or stepped display with believable material surfaces and controlled side light appropriate to the chosen theme.",
+      "Build a quiet editorial display against a softly textured wall, with a contrasting but plausible product support and generous breathing room.",
+    ],
   },
   {
-    title: "Context tells the story",
-    story: "Make the relationship between the main subject and the selected setting tell a small, believable story without changing that setting.",
-    camera: "Use a wider environmental view from a slightly lower, natural camera position, keeping the subject clearly readable.",
-    composition: "Balance the subject against meaningful context in the existing background; avoid a centered catalogue arrangement.",
-    action: "Capture a plausible moment just before or after ordinary use; do not depict a function, benefit or person that was not requested.",
+    id: "overhead-editorial", title: "Graphic editorial arrangement",
+    camera: "MANDATORY unless the user fixed a viewpoint: use a true 90-degree overhead camera, looking straight down at a flat-lay editorial arrangement. Position the product physically so its real front and label remain readable; do not render another eye-level standing packshot.",
+    composition: "Create a graphic top-down arrangement with strong diagonals, deliberate spaces and visibly different object placement. Use one actual product unless the selected count says otherwise, and keep important brand text intact.",
+    story: "Tell the product story through a carefully arranged editorial still life and a fresh surface, with ordinary category-relevant props that do not imply unsupported ingredients or benefits.",
+    scenes: [
+      "Build a graphic still life on a suitable matte stone or paper surface, with folded linen and an ordinary category-relevant accessory such as appropriate ceramic serving ware.",
+      "Build a tactile editorial surface with intersecting paper or textile shapes and a few restrained contextual objects appropriate to the product and selected theme.",
+      "Build a clean graphic surface with a diagonal natural shadow and a small, product-relevant accessory; avoid the source photo's upright catalogue arrangement.",
+    ],
   },
   {
-    title: "Tactile detail",
-    story: "Let a genuine visible material, surface, food texture or garment detail carry the visual story; never invent a feature or alter the reference.",
-    camera: "Use a close detail view with realistic focus falloff, retaining enough recognizable subject context and preserving required labels.",
-    composition: "Create an intimate detail-led composition with one unmistakable point of attention and quieter supporting context.",
-    action: "Use a subtle, believable pause that makes the real texture easy to notice, rather than an exaggerated advertising gesture.",
+    id: "tactile-close-up", title: "Tactile close detail",
+    camera: "MANDATORY unless the user fixed framing: use a genuinely close or macro-like detail composition. The product fills roughly 80–95% of frame height, showing authentic packaging, texture or material at intimate scale with realistic focus falloff. Keep required branding legible and product geometry accurate.",
+    composition: "Make a real surface, opening, label or material junction the point of attention, with a tight frame and quiet supporting context. This must read as an intimate close detail rather than the same full-product/table shot.",
+    story: "Let authentic, visible product and packaging detail carry the story. Never invent texture, ingredients, features, inscriptions or packaging construction that the reference does not support.",
+    scenes: [
+      "Build a close tactile vignette on quiet, theme-appropriate fabric or stone, with a gentle background tone chosen to reveal the actual material.",
+      "Build a restrained near-detail set on a believable contrasting surface with soft contextual blur; let true material detail dominate.",
+      "Build an intimate material study with clean falloff into negative space and physically plausible light grazing the real package or product surface.",
+    ],
   },
   {
-    title: "Natural interaction",
-    story: "Make a small, everyday relationship with the subject feel observed rather than staged, while retaining the chosen theme.",
-    camera: "Use a natural side-of-scene view at a moderate distance, with undistorted perspective and clear subject recognition.",
-    composition: "Use a diagonal flow between the subject and existing contextual elements instead of repeating a straight-on packshot.",
-    action: "If a person is requested, show a different plausible hand position or expression; otherwise create a thoughtful still-life relationship using only permitted elements.",
-  },
-  {
-    title: "Layered editorial",
-    story: "Give the selected setting a sense of tangible space, with the same subject clearly anchored within it.",
-    camera: "Use an oblique environmental view that reveals believable spatial depth without distorting the subject.",
-    composition: "Separate foreground, subject and background into readable layers using only existing or explicitly allowed scene elements.",
-    action: "Pick a quiet transition moment with a different natural arrangement; preserve any prescribed pose or product placement.",
-  },
-  {
-    title: "Shape and rhythm",
-    story: "Build the image around the actual silhouette, lines and color relationships of the supplied subject, without duplicating it or inventing props.",
-    camera: "Use a slightly elevated three-quarter view that reveals the genuine form and keeps important surfaces legible.",
-    composition: "Use a deliberate visual rhythm of existing lines and shapes with a fresh focal placement; keep the requested product count exact.",
-    action: "Use a precise, understated arrangement; if a person is requested, let their natural gesture support the subject rather than hide it.",
-  },
-  {
-    title: "Candid documentary beat",
-    story: "Create an unstaged-looking instant from the requested scene, with small, plausible imperfections and no invented product claims.",
-    camera: "Use an observer-like medium view from a believable position within the selected scene; avoid a flat front-on catalogue shot.",
-    composition: "Create an intentionally informal balance with clear subject separation and a different distribution of visual weight.",
-    action: "If a person is requested, use a candid micro-expression or unforced gesture; otherwise show a naturally settled still life without adding people.",
-  },
-  {
-    title: "Material meets light",
-    story: "Make realistic light interacting with the subject's true materials the visual emphasis, while respecting the selected lighting and time of day.",
-    camera: "Use a clear near-profile three-quarter view that makes the actual surface and volume readable without concealing required branding.",
-    composition: "Build the visual path around a real edge, reflection or texture; retain a coherent subject rather than an abstract fragment.",
-    action: "Choose a still, tactile presentation moment that reveals authentic detail without adding unrealistic effects.",
-  },
-  {
-    title: "Intentional negative space",
-    story: "Give the same subject an editorial, spacious treatment within the chosen setting, without adding text or graphics unless requested.",
-    camera: "Use a more distant, natural frontal view with realistic perspective and enough resolution for recognizable subject details.",
-    composition: "Use generous asymmetrical negative space and one clear visual anchor, with a substantially different subject scale in the frame.",
-    action: "Present a deliberate pause; if a person is requested, use a composed but unforced gesture appropriate to the chosen scene.",
-  },
-  {
-    title: "Intimate scene narrative",
-    story: "Tell a closer, personal version of the requested scene through the relationship between subject, permitted context and believable atmosphere.",
-    camera: "Use a close-medium view at a gentle diagonal, retaining the subject's true proportions and essential details.",
-    composition: "Create a compact, triangular visual relationship among elements already allowed in the scene, with the subject clearly dominant.",
-    action: "If a person is requested, use a natural moment of attention toward the subject; otherwise express that intimacy through a restrained still-life arrangement.",
+    id: "wide-lifestyle-context", title: "Wide lifestyle narrative",
+    camera: "MANDATORY unless the user fixed framing: use a genuinely wide environmental composition showing a coherent lifestyle setting. Keep the product recognizable but roughly 25–40% of frame height, with substantial readable surroundings. Do not crop back to another close hero packshot.",
+    composition: "Show a plausible relationship between product and environment with foreground, subject and background layers. Put the product in a purposeful off-center position with a strong spatial story.",
+    story: "Create a believable context-led moment in a fresh scene suited to the selected theme. Add a person only if requested or a model was supplied to appear; preserve that person's identity and requested pose. Otherwise create a lifestyle still life without people.",
+    scenes: [
+      "Build a wider lounge, workspace or hospitality vignette suited to this product category and the chosen theme, with meaningful spatial depth.",
+      "Build a lived-in but refined everyday setting appropriate to the product, with a different surface, spatial arrangement and background architecture from the product reference.",
+      "Build a calm context-led editorial environment appropriate to the product and theme, using a few ordinary lifestyle objects and ample environmental breathing room.",
+    ],
   },
 ];
 
-function seededOrder(value: string): CreativeBrief[] {
+function randomSource(value: string): () => number {
   let seed = 2166136261;
   for (const character of value) seed = Math.imul(seed ^ character.charCodeAt(0),16777619) >>> 0;
-  const order = [...briefs];
-  for (let index = order.length - 1; index > 0; index--) {
-    seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5;
-    const target = (seed >>> 0) % (index + 1);
-    [order[index],order[target]] = [order[target],order[index]];
-  }
+  if (!seed) seed = 0x9e3779b9;
+  return () => { seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5; return seed >>> 0; };
+}
+
+function permutation(size: number, random: () => number): number[] {
+  const order = Array.from({ length: size },(_,i) => i);
+  for (let index = size - 1; index > 0; index--) { const target = random() % (index + 1); [order[index],order[target]] = [order[target],order[index]]; }
   return order;
 }
 
@@ -94,13 +69,17 @@ const automaticChoice = /^(?:auto(?:matic)?|random|acak|bebas|custom|none|tidak 
 const cameraChoice = /camera|angle|viewpoint|sudut|perspektif/i;
 const layoutChoice = /composition|komposisi|layout|tata letak/i;
 const actionChoice = /pose|gesture|gestur|action|aksi|ekspresi|expression/i;
-const cameraInstruction = /\b(?:flat[- ]lay|top[- ]down|overhead|bird'?s[- ]eye|eye[- ]level|low[- ]angle|high[- ]angle|front(?:al)?[- ]view|side[- ]view|back[- ]view|close[- ]up|macro|full[- ]body|pov|selfie|sudut|perspektif|dari atas|dari bawah|tampak depan|tampak samping|tampak belakang)\b/i;
-const layoutInstruction = /\b(?:center(?:ed)?|centr(?:ed|al)|symmetr(?:y|ical)|simetris|split[- ]screen|collage|kolase|grid|komposisi|layout|tata letak)\b|(?:preserve|keep|same|unchanged|pertahankan|tetap|jangan ubah).{0,45}(?:composition|framing|crop|komposisi)/i;
-const actionInstruction = /\b(?:pose|gesture|gestur|holding|memegang|menggenggam|berdiri|duduk|standing|sitting|walking|berjalan|tersenyum|smiling|ekspresi|expression|pov[- ]?\d?[- ]?tangan)\b/i;
+const backgroundField = /background|backdrop|latar(?:[-_ ]belakang)?/i;
+const cameraInstruction = /\b(?:flat[- ]lay|top[- ]down|overhead|bird'?s[- ]eye|eye[- ]level|low[- ]angle|high[- ]angle|front(?:al)?[- ]view|side[- ]view|back[- ]view|close[- ]up|macro|full[- ]body|pov|selfie|dari atas|dari bawah|tampak depan|tampak samping|tampak belakang)\b/i;
+// "Different composition/layout" grants freedom; only concrete layouts or an
+// explicit instruction to preserve one count as locks.
+const layoutInstruction = /\b(?:center(?:ed)?|centr(?:ed|al)|symmetr(?:y|ical)|simetris|split[- ]screen|collage|kolase|grid)\b|(?:preserve|keep|same|unchanged|pertahankan|tetap|jangan ubah).{0,45}(?:composition|framing|crop|komposisi|layout|tata letak)|(?:composition|framing|komposisi|layout|tata letak).{0,35}(?:unchanged|tetap sama|jangan diubah)/i;
+const actionInstruction = /\b(?:holding|memegang|menggenggam|berdiri|duduk|standing|sitting|walking|berjalan|tersenyum|smiling|pov[- ]?\d?[- ]?tangan)\b|(?:preserve|keep|same|unchanged|pertahankan|tetap|jangan ubah).{0,35}(?:pose|gesture|gestur|ekspresi|expression)/i;
+const preciseUgcTools = new Set(["size-guide","virtual-tryon","before-after","testimonial-generator","feedbranding"]);
 
-/** Bounded creative direction for UGC photo batches; never changes precise edits or storyboard scenes. */
+/** Balanced UGC photo concepts. Exact edits, guides and prescribed scenes stay outside campaign recomposition. */
 export function imageVariationDirection(feature: Feature, input: GenerateInput, fields: readonly FeatureField[] = feature.fields): string {
-  if (input.kind !== "image" || feature.kind !== "image" || feature.group !== "ugc" || feature.capability) return "";
+  if (input.kind !== "image" || feature.kind !== "image" || feature.group !== "ugc" || feature.capability || preciseUgcTools.has(feature.id)) return "";
   const { batchId, sequenceIndex: index, sequenceTotal: total } = input.options;
   if (typeof batchId !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(batchId) || typeof index !== "number" || typeof total !== "number" || !Number.isInteger(index) || !Number.isInteger(total) || index < 1 || total < 1 || total > 10 || index > total) return "";
   const selected = fields.flatMap(field => {
@@ -112,16 +91,33 @@ export function imageVariationDirection(feature: Feature, input: GenerateInput, 
   const cameraLocked = cameraInstruction.test(instructions) || selected.some(item => cameraChoice.test(item.name));
   const layoutLocked = layoutInstruction.test(instructions) || selected.some(item => layoutChoice.test(item.name));
   const actionLocked = actionInstruction.test(instructions) || selected.some(item => actionChoice.test(item.name));
-  const brief = seededOrder(`${feature.id}:${batchId}`)[index - 1];
+  const backgroundIds = new Set(fields.filter(field => field.type === "file" && backgroundField.test(`${field.id} ${field.label}`)).map(field => field.id));
+  const hasBackgroundReference = input.images.some(image => image.role !== "mask" && !!image.fieldId && backgroundIds.has(image.fieldId));
+  const random = randomSource(`${feature.id}:${batchId}`);
+  const familyOrder = permutation(families.length,random);
+  const sceneOrders = families.map(family => permutation(family.scenes.length,random));
+  const familyIndex = familyOrder[(index - 1) % families.length];
+  const family = families[familyIndex];
+  const treatment = sceneOrders[familyIndex][Math.floor((index - 1) / families.length)];
+  const scene = family.scenes[treatment];
   return [
-    `Creative variation ${index} of ${total} — ${brief.title}. Produce exactly one finished image for this slot.`,
-    "Priority: the user's instructions, selected controls and reference relationships override every creative suggestion below. Keep the exact product shape, colors, packaging, labels, logos and requested subject count; preserve the supplied person's identity, selected clothing, theme, medium, aspect ratio and custom/reference background. Do not invent product functions, benefits, claims, testimonials or extra people.",
-    "A product reference is an identity reference, not a template for the whole photograph. If it contains an earlier generated scene, keep the actual product accurate but rebuild the composition and storytelling for this brief. Do not copy that reference's old camera framing, subject placement or background unless the user explicitly locks them or supplies it as a custom/background reference. A selected background reference still stays fixed.",
-    `Visual story: ${brief.story}`,
-    cameraLocked ? "Camera constraint: retain the exact requested viewpoint, lens/framing and camera treatment. Find variety through the other unlocked dimensions; do not switch away from flat-lay, POV or another chosen view." : `Camera suggestion, only where unspecified: ${brief.camera}`,
-    layoutLocked ? "Composition constraint: retain the prescribed layout, placement and framing; do not recrop or rearrange any locked element." : `Composition suggestion, only where unspecified: ${brief.composition}`,
-    actionLocked ? "Action constraint: retain the exact requested pose, gesture, interaction and expression. Do not substitute another action for variety." : `Moment suggestion, only where unspecified: ${brief.action}`,
-    "Make this a distinct creative treatment rather than a near-duplicate packshot with a tiny crop or color change. Differentiate at least two unlocked dimensions (viewpoint, framing, spatial composition, natural interaction, visual emphasis) when the user's constraints allow it. If all dimensions are fixed, satisfy those constraints instead of forcing differences. Keep the same chosen setting; do not manufacture a different location to create variety.",
+    `Creative variation ${index} of ${total} — ${family.title}, treatment ${treatment + 1}. Produce exactly one finished image for this slot.`,
+    `Creative family: ${family.id}. This is an assigned art direction, not an optional list of alternatives; apply it substantially wherever the user's explicit constraints leave freedom.`,
+    cameraLocked ? "Camera constraint: retain the exact requested viewpoint, lens/framing and camera treatment. The assigned family's camera requirement is overridden. Do not switch away from flat-lay, POV or another chosen view; differentiate through the remaining unlocked dimensions." : `Camera suggestion, only where unspecified: ${family.camera}`,
+    layoutLocked
+      ? "Composition constraint: retain the prescribed layout, placement and framing; the assigned family's composition requirement is overridden. Do not recrop or rearrange any locked element."
+      : cameraLocked
+        ? "Composition suggestion, only where unspecified: adapt this family's visual story with a different arrangement, focus and contextual relationship while keeping the exact requested camera viewpoint and framing. Do not use a conflicting scale or crop merely to fit the family."
+        : `Composition suggestion, only where unspecified: ${family.composition}`,
+    hasBackgroundReference
+      ? "Background reference supplied through the background control. Preserve that exact background's recognizable setting, architecture and scene elements. Do not replace it with a new location. Adapt this slot's camera, subject placement, detail and storytelling within that real background, subject to any further user locks."
+      : "No background reference supplied. Discard the old product-photo setting and rebuild a fresh scene for this slot within the selected theme. The old kitchen, table, props and room visible behind a product reference are not locked. A theme such as Luxury describes an aesthetic, not one fixed location. Do not keep reproducing the same warm kitchen/table merely because it appears in the product photo. Preserve an exact location or background description only when the user explicitly specifies it.",
+    `Set direction: ${hasBackgroundReference ? "Use the actual supplied background reference, adapting the assigned visual story without replacing its environment." : `${scene} Follow any specific location described by the user; otherwise make this a fresh set, not a recreation of the product-reference room.`}`,
+    `Visual story: ${family.story}`,
+    "Priority: the user's explicit instructions, selected controls and image roles override the creative directions above. Preserve the exact product shape, colors, packaging, labels, logos and requested subject count; keep the supplied person's identity, chosen clothing, selected theme, medium and aspect ratio. Do not invent product functions, benefits, claims, testimonials or extra people.",
+    "A product reference is an identity reference, not a template for the whole photograph. If it contains an earlier generated scene, keep the actual product accurate but rebuild the composition and storytelling for this brief. Do not copy the old camera framing, placement or scene unless the user explicitly locks them or supplies an actual background reference through its background control.",
+    actionLocked ? "Action constraint: retain the exact requested pose, gesture, interaction and expression. Do not substitute another action for variety." : "Moment suggestion, only where unspecified: choose a believable still-life arrangement or, only if a model is requested, a natural interaction appropriate to the assigned visual story. Never introduce a person just to create variety.",
+    "Make this a substantially distinct photograph, not the same upright full-product packshot with a small color, crop or lighting change. Differentiate at least two unlocked dimensions: camera elevation, subject scale in frame, arrangement, scene context and narrative emphasis. Ordinary category-relevant props are allowed when not prohibited, but must not imply unsupported ingredients, efficacy or product features; do not duplicate the product. If all dimensions are fixed, satisfy those constraints instead of forcing differences.",
     "Keep photographic elements hyperrealistic: believable camera perspective, natural skin and material texture, physically consistent light and shadows, restrained retouching and plausible anatomy. Preserve any explicitly requested illustration, cartoon, anime, 3D or graphic medium; never force photographic treatment onto that medium.",
   ].join("\n");
 }
