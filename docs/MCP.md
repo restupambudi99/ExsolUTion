@@ -1,10 +1,10 @@
 # MCP & Plugin ExsolUTion
 
-Panduan ini ditujukan untuk pemeliharaan ExsolUTion dengan Codex, ChatGPT, atau Claude Code. Panduan visual setelah login tersedia di [halaman MCP & Plugin](https://toolsaff.restupambudi.my.id/integrations).
+Panduan ini ditujukan untuk pemeliharaan ExsolUTion dengan Codex, ChatGPT, atau Claude Code. Panduan visual setelah login tersedia di [halaman MCP & Plugin](https://exsolution-studio.easybell32.chatgpt.site/integrations).
 
 ## Koneksi
 
-Endpoint remote HTTP MCP: `https://affiliate-go-studio-restu.nick-hatzis-1514.chatgpt.site/mcp`. Nilai canonical berada pada `lib/studio-mcp-info.ts`; gunakan nilai tersebut jika hostname berubah. Autentikasi dan OAuth ditangani platform Sites. Akses mengikuti audience custom ExsolUTion, bukan email atau identitas yang dikirim dalam argumen tool.
+Endpoint remote HTTP MCP: `https://exsolution-studio.easybell32.chatgpt.site/mcp`. Nilai canonical berada pada `lib/studio-mcp-info.ts`; gunakan nilai tersebut jika hostname berubah. Autentikasi dan OAuth ditangani platform Sites. Akses mengikuti audience custom ExsolUTion, bukan email atau identitas yang dikirim dalam argumen tool.
 
 ### Codex dan ChatGPT
 
@@ -19,7 +19,7 @@ Endpoint MCP memerlukan token OAuth client yang dikelola Sites. Cookie login web
 Jalankan dari terminal project menggunakan Claude Code versi yang mendukung remote HTTP MCP dan OAuth:
 
 ```sh
-claude mcp add --transport http exsolution https://affiliate-go-studio-restu.nick-hatzis-1514.chatgpt.site/mcp
+claude mcp add --transport http exsolution https://exsolution-studio.easybell32.chatgpt.site/mcp
 claude mcp login exsolution
 ```
 

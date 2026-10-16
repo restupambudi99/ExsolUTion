@@ -2,15 +2,17 @@
 
 Brand ditulis **ExsolUTion**, dengan huruf **E**, **U**, dan **T** kapital; huruf **U** serta **T** pada wordmark berwarna kuning.
 
-Website: [toolsaff.restupambudi.my.id](https://toolsaff.restupambudi.my.id). Panduan koneksi asisten tersedia pada halaman **MCP & Plugin** (`/integrations`) setelah login dan pada [docs/MCP.md](docs/MCP.md) di source ini.
+Repositori utama: [restupambudi99/ExsolUTion](https://github.com/restupambudi99/ExsolUTion). Baca [konteks proyek](docs/PROJECT_CONTEXT.md) dan [AGENTS.md](AGENTS.md) sebelum melanjutkan pekerjaan. Source, migrasi, tes, dan riwayat pengembangan disimpan di repositori ini; rahasia server dan data pengguna disimpan terpisah pada hosting.
 
-Implementasi SaaS mandiri berdasarkan referensi asli [Affiliate GO di Gemini Canvas](https://gemini.google.com/share/50a05a6652ae). Registry mencakup **82 menu utama dan 20 mode tambahan**, dalam satu kelompok umum dan delapan kelompok fitur. Formulir menyediakan 780 kontrol dengan 2.888 pilihan bernama. Jumlah ini menunjukkan cakupan menu dan formulir; keberhasilan setiap keluaran AI tetap bergantung pada provider dan akses model.
+Hosting pengganti: [ExsolUTion Studio](https://exsolution-studio.easybell32.chatgpt.site). Status domain `toolsaff.restupambudi.my.id` dicatat di konteks proyek. Panduan koneksi asisten tersedia pada halaman **MCP & Plugin** (`/integrations`) setelah login dan pada [docs/MCP.md](docs/MCP.md).
+
+Implementasi SaaS mandiri berdasarkan referensi asli [Affiliate GO di Gemini Canvas](https://gemini.google.com/share/50a05a6652ae), ditambah [21 Angle Generator](docs/angle-generator.md). Registry mencakup **83 menu utama dan 20 mode tambahan**. Jumlah ini menunjukkan cakupan menu dan formulir; keberhasilan setiap keluaran AI tetap bergantung pada provider dan akses model.
 
 Antarmuka dan kode aplikasi ditulis ulang. Nama menu serta label kontrol mengikuti bukti yang diamati melalui REA. Kode executable, prompt panjang, kredensial, autentikasi pembelian, dan layanan backend publisher tidak digunakan oleh aplikasi ini. Artefak investigasi lokal berada di `.rea/reference` pada root workspace, diabaikan Git dan tidak termasuk deployment. Evidence browser: `ev_b5493bc4c78212470f54c5b8489a102fa0fc93df2cb71d46fa7aef54305cf02c`; analisis JavaScript: `ev_69a6992c192f682e8b3545047655247ecdfe6f596a69e3f44da23fd1671ea357`. Bukti tersebut memiliki batas cakupan dan tidak membuktikan seluruh perilaku runtime layanan asli.
 
 ## Menjalankan di Windows
 
-Gunakan Node.js **22.13.0 atau lebih baru** dan npm. Jalankan dari folder `sites/affiliate-go`; `npm.cmd` adalah executable npm Windows yang dapat dipakai di PowerShell tanpa menjalankan shim `npm.ps1`.
+Gunakan Node.js **22.13.0 atau lebih baru** dan npm. Jalankan dari root checkout repositori; pada workspace awal folder canonical berada di `sites/exsolution`. `npm.cmd` adalah executable npm Windows yang dapat dipakai di PowerShell tanpa menjalankan shim `npm.ps1`.
 
 ```powershell
 npm.cmd run install:ci
@@ -23,6 +25,8 @@ foreach ($migration in $localMigrationJournal.entries) {
 }
 npm.cmd run dev
 ```
+
+Untuk instalasi bersih lintas platform, `npm ci` juga didukung. Jalankan `npm test` untuk seluruh tes. Tooling REA opsional tersedia di [tooling/rea](tooling/rea/README.md) dan tidak diperlukan untuk menjalankan aplikasi.
 
 Salin `.env.example` sekali pada setup awal, lalu isi `.dev.vars` sesuai kebutuhan. File tersebut diabaikan Git. **Loop migrasi pada contoh hanya untuk database lokal baru yang kosong**: perintah tersebut menjalankan semua file SQL berurutan dan tidak mencatat penerapan migrasi. Jangan mengulangnya pada database yang sudah diisi; pada database lama, terapkan hanya file migrasi yang belum pernah dijalankan. Buka URL Local yang tercetak di terminal, biasanya `http://localhost:5173`.
 

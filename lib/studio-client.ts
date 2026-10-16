@@ -4,7 +4,7 @@ export class StudioRequestError extends Error {
   constructor(message: string, public status: number, public code: string, public requestId?: string) { super(message); }
 }
 
-export type GenerationResult = { id: string; kind: string; url?: string; text?: string; mimeType?: string; warnings?: string[] };
+export type GenerationResult = { id: string; kind: string; url?: string; text?: string; mimeType?: string; warnings?: string[]; angleId?: string; angleRatio?: string };
 export type GenerationResponse = { id: string; results: GenerationResult[]; createdAt?: number; warnings?: string[]; requestId?: string };
 export type PendingGeneration = { requestId: string; featureId: string; startedAt: number; batchId?: string; sequenceIndex?: number; sequenceTotal?: number };
 export type GenerationStatus = { status: "pending" | "unknown" | "completed" | "failed"; requestId?: string; data?: GenerationResponse; error?: string; code?: string; errorStatus?: number };
@@ -109,7 +109,7 @@ export async function generateRequest(body: Record<string, unknown>, scope: stri
   const options = object(body.options) ? body.options : {};
   const batchId = safeId(options.batchId);
   const index = Number(options.sequenceIndex), total = Number(options.sequenceTotal);
-  const batchMetadata = batchId && Number.isInteger(index) && Number.isInteger(total) && index >= 1 && index <= total && total <= 10 ? { batchId, sequenceIndex: index, sequenceTotal: total } : {};
+  const batchMetadata = batchId && Number.isInteger(index) && Number.isInteger(total) && index >= 1 && index <= total && total <= (body.featureId === "angle-generator" ? 21 : 10) ? { batchId, sequenceIndex: index, sequenceTotal: total } : {};
   const item: PendingGeneration = { requestId, featureId: String(body.featureId), startedAt: Date.now(), ...batchMetadata };
   writePending(scope, [...readPending(scope), item]); onPending?.(item);
   try {

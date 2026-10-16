@@ -9,6 +9,7 @@ import { appendFeaturePromptInstructions, getFeaturePromptSettings } from "@/lib
 import { assertRouterGeneration, generateWithRouter } from "@/lib/studio-router";
 import { persistGeneration } from "@/lib/studio-storage";
 import { validateGenerate, ValidationError } from "@/lib/studio-validation";
+import { ANGLE_GENERATOR_ID, angleSlotDirection } from "@/lib/studio-angle-generator";
 import { assertObjectMask } from "@/lib/studio-mask";
 import { claimGenerationRequest, completeGenerationRequest, failGenerationRequest, generationFingerprint, generationRequestId, generationRequestState, type GenerationFailure, type GenerationResponse } from "@/lib/studio-generation-requests";
 
@@ -41,6 +42,12 @@ export async function POST(request: Request) {
     if (feature.kind === "local" || feature.kind === "store") throw new ApiError(400, "local_tool", "Fitur ini dijalankan langsung di aplikasi.");
     const input = validateGenerate(raw);
     input.options = applicableValues(feature,input.options);
+    let angleDirection = "";
+    if (feature.id === ANGLE_GENERATOR_ID) {
+      try { angleDirection = angleSlotDirection(input.options); }
+      catch (error) { throw new ApiError(400,"invalid_angle_selection",(error as Error).message); }
+      if (input.images.length !== 1 || input.images[0].role === "mask") throw new ApiError(400,"reference_images_required","Unggah tepat satu foto referensi untuk 21 Angle Generator.");
+    }
     const fields = applicableFields(feature,input.options);
     const activeFileIds = new Set(fields.filter((field) => field.type === "file").map((field) => field.id));
     const declaredFileIds = new Set(feature.fields.filter((field) => field.type === "file").map((field) => field.id));
@@ -110,13 +117,14 @@ export async function POST(request: Request) {
       const field = image.fieldId && fields.find((item) => item.id === image.fieldId && item.type === "file");
       return `Reference image ${index + 1}: ${field ? field.label : "uploaded image"}`;
     });
-    const intent = `${featureIntent}${input.kind === "image" ? `\n${imageVariationDirection(feature,input,fields)}` : ""}\nFeature: ${feature.label}\n${labelledOptions.join("\n")}\n${referenceLabels.join("\n")}${input.kind === "image" ? `\n${imagePhotographyDirection}` : ""}`;
+    const intent = `${featureIntent}${angleDirection ? `\n${angleDirection}` : ""}${input.kind === "image" ? `\n${imageVariationDirection(feature,input,fields)}` : ""}\nFeature: ${feature.label}\n${labelledOptions.join("\n")}\n${referenceLabels.join("\n")}${input.kind === "image" ? `\n${imagePhotographyDirection}` : ""}`;
     const acceptedRequestId = requestId;
     const execute = async (): Promise<{ status: number; data: GenerationResponse | GenerationFailure }> => {
       try {
-        const outputs = selectedProvider.provider === "gemini"
+        const providerOutputs = selectedProvider.provider === "gemini"
           ? await generateWithGemini(input,intent,selectedProvider.settings)
           : await generateWithRouter(input,intent,selectedProvider.settings);
+        const outputs = feature.id === ANGLE_GENERATOR_ID ? providerOutputs.slice(0,1) : providerOutputs;
         const warnings = [...new Set([...outputs.flatMap((output) => output.warnings ?? []), ...(input.images.some((image) => image.role === "mask") ? ["Mask digunakan sebagai panduan visual AI, bukan inpainting yang presisi per piksel. Periksa kembali area di luar mask pada hasil akhir."] : [])])];
         // Persist warnings with each result so history and request recovery retain
         // the same capability/precision limits that were shown at generation time.

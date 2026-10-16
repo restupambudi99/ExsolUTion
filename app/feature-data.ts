@@ -80,6 +80,11 @@ export const featureGroups: { id: string; label: string; iconId: string }[] = [
     "id": "video-audio",
     "label": "Video & Audio",
     "iconId": "film"
+  },
+  {
+    "id": "camera-lab",
+    "label": "Sudut Kamera",
+    "iconId": "camera"
   }
 ];
 
@@ -20206,5 +20211,60 @@ export const features: Feature[] = [
     "isNew": false,
     "hidden": false,
     "capability": "storyboard"
-  }
+  },
+{
+  "id": "angle-generator",
+  "label": "21 Angle Generator",
+  "description": "Ubah satu foto menjadi hingga 21 sudut kamera. Pilih ekspresi dan rasio, lalu unduh setiap hasil dalam PNG atau JPG.",
+  "iconId": "camera",
+  "group": "camera-lab",
+  "kind": "image",
+  "isNew": true,
+  "fields": [
+    {
+      "id": "angle-reference",
+      "label": "Foto referensi",
+      "type": "file",
+      "required": true,
+      "multiple": false,
+      "accept": "image/png,image/jpeg,image/webp",
+      "role": "image"
+    },
+    {
+      "id": "angle-expression",
+      "label": "Pilih ekspresi",
+      "type": "text",
+      "defaultValue": ""
+    },
+    {
+      "id": "angle-ratio",
+      "label": "Dimensi gambar",
+      "type": "choice",
+      "role": "ratio",
+      "defaultValue": "1:1",
+      "options": [
+        {
+          "value": "1:1",
+          "label": "Persegi · 1080 × 1080"
+        },
+        {
+          "value": "16:9",
+          "label": "Lanskap · 1920 × 1080"
+        },
+        {
+          "value": "9:16",
+          "label": "Potret · 1080 × 1920"
+        }
+      ],
+      "help": "Rasio diterapkan saat generate. Unduhan PNG/JPG diekspor pada ukuran ini; ukuran asli dari provider dapat berbeda."
+    },
+    {
+      "id": "angle-ids",
+      "label": "Sudut kamera terpilih",
+      "type": "text",
+      "defaultValue": ""
+    }
+  ],
+  "promptIntent": "Reconstruct the same reference subject from the single explicitly assigned camera viewpoint. Produce exactly one standalone image, never a collage or grid. Preserve the same person or character identity, facial structure, hair, outfit, accessories, visible product details, materials, location and lighting continuity. Change only the requested camera position, framing and selected expression. Do not introduce unrelated creative concepts, props, branding or text. Preserve the reference medium; photographic references must look like natural hyperrealistic photography. Follow the server supplied angle direction precisely."
+}
 ];

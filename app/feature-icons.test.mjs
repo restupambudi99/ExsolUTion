@@ -19,7 +19,7 @@ const utilityIds = ["settings","history","help","sign-out","favorites","search",
 const navigationIds = [...featureIds,...featureGroups.map(group => `group:${group.id}`),...utilityIds];
 
 test("every feature, variant, category, and sidebar utility has an explicit multicolor illustration", () => {
-  assert.equal(featureIds.length,102);
+  assert.equal(featureIds.length,103);
   assert.equal(new Set(navigationIds).size,navigationIds.length);
   assert.deepEqual(Object.keys(featureIconArtwork).sort(),[...navigationIds].sort());
   for (const id of navigationIds) {

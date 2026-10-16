@@ -1,0 +1,13 @@
+{
+  "name": "rea-project",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Project-local REA analysis tools for Codex",
+  "scripts": {
+    "rea": "rea",
+    "rea:mcp": "rea mcp"
+  },
+  "dependencies": {
+    "rea-agents": "6.5.0"
+  }
+}

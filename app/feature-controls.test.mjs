@@ -9,7 +9,7 @@ function load(relative) {
   }).outputText;
   return import(`data:text/javascript;base64,${Buffer.from(code).toString("base64")}`);
 }
-const { features } = await load("./feature-data.ts");
+const { features, featureGroups } = await load("./feature-data.ts");
 const { applicableFields, applicableValues, variantTarget } = await load("./feature-controls.ts");
 const all = features.flatMap(feature => [feature, ...(feature.variants || [])]);
 const feature = id => all.find(item => item.id === id);
@@ -17,8 +17,8 @@ const fields = (id, values = {}) => applicableFields(feature(id), values);
 const fieldIds = (id, values = {}) => fields(id, values).map(field => field.id);
 
 test("preserves the complete navigation registry with valid independent controls", () => {
-  assert.equal(features.length, 82);
-  assert.equal(all.length, 102);
+  assert.equal(features.length, 83);
+  assert.equal(all.length, 103);
   assert.equal(new Set(all.map(item => item.id)).size, all.length);
   for (const item of all) {
     assert.equal(new Set(item.fields.map(field => field.id)).size, item.fields.length, item.id);
@@ -34,6 +34,18 @@ test("preserves the complete navigation registry with valid independent controls
     assert.ok(active.filter(field => field.role === "ratio").length <= 1, `${item.id} has one active ratio`);
     assert.ok(active.filter(field => field.role === "count").length <= 1, `${item.id} has one active count`);
   }
+});
+
+test("the camera tool is last in navigation and keeps one reference and independent angle controls", () => {
+  const camera = feature("angle-generator");
+  assert.equal(features.at(-1).id, camera.id);
+  assert.equal(featureGroups.at(-1).id, camera.group);
+  assert.deepEqual(camera.fields.filter(field => field.type === "file").map(field => [field.required,field.multiple]), [[true,false]]);
+  const options = applicableValues(camera, { "angle-ids": "front,back,profile", "angle-expression": "Gentle Smile", "angle-ratio": "9:16", sequenceIndex: 3, sequenceTotal: 3 });
+  assert.equal(options["angle-ids"], "front,back,profile");
+  assert.equal(options["angle-expression"], "Gentle Smile");
+  assert.equal(options["angle-ratio"], "9:16");
+  assert.equal(options.sequenceIndex, 3);
 });
 
 test("before-after text mode works without a photo and excludes stale upload/product controls", () => {

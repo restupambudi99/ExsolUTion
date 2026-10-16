@@ -134,6 +134,8 @@ export const featureIconArtwork: Record<string, readonly Shape[]> = {
   "group:branding-design": [p("M17 3q15 0 13 15-1 8-9 6-5-1-4 4-11 6-15-7Q-3 6 17 3Z","pink"),c(9,12,3,"blue",false),c(18,8,2.5,"yellow",false),c(26,14,2.5,"teal",false),p("M8 24L21 9l3 3-13 15-5 2Z","purple")],
   "group:home-interior": [p("M3 15L16 3l13 12v15H3Z","cream"),p("M8 24v-8h16v8Z","purple"),r(6,20,20,7,"pink",2),l("M8 27v4m16-4v4","blue",2),c(16,11,3,"yellow")],
   "group:business-tools": [r(2,10,28,19,"blue",3),p("M10 10V5h12v5Z","purple"),p("M2 16h28v5H2Z","cyan",false),r(13,17,6,6,"yellow",1),l("M16 5v5","pink",2)],
+  "angle-generator": [r(4,10,24,17,"purple",4),p("M9 10l3-5h8l3 5Z","yellow"),c(16,18,6,"cyan"),c(16,18,3,"blue",false),p("M2 7q14-11 28 0M2 7V2m0 5h5M30 7V2m0 5h-5","coral",false),c(25,13,1.3,"white",false)],
+  "group:camera-lab": [p("M16 2l13 7v14l-13 7L3 23V9Z","blue"),p("M16 2v28M3 9l13 7 13-7","cyan",false),c(16,16,7,"yellow"),c(16,16,4,"purple"),l("M14 16h4m-2-2v4","white",1.6)],
   "group:video-audio": [r(2,5,22,24,"purple",2),r(5,8,16,13,"cyan",1),p("M10 11l8 4-8 4Z","white",false),p("M24 3h6v20q-8 6-9-1 0-4 6-4V8h-3Z","coral"),l("M5 25h3m5 0h3","yellow",1.8)],
   "utility:settings": [p("M12 2h8l1 5 5 2 4 6-4 4-1 6-6 4-5-3-6-1-4-6 3-5-1-6 6-4Z","purple"),c(16,16,8,"cyan"),c(16,16,4,"white"),c(26,26,5,"green"),l("M23 26l2 2 4-5","white",1.5)],
   "utility:history": [r(3,6,19,22,"purple",2),r(7,3,19,22,"pale",2),c(20,21,10,"cyan"),l("M20 15v7l5 3","blue",2.2),l("M11 8h10m-10 4h5","coral",1.7)],

@@ -73,7 +73,7 @@ async function retryBackoff(options: RunBatchOptions): Promise<void> {
 
 export function createBatch(featureId: string, total: number): GenerationBatch {
   if (!/^[a-zA-Z0-9_-]{1,100}$/.test(featureId)) throw new Error("Fitur batch tidak valid.");
-  if (!Number.isInteger(total) || total < 1 || total > 10) throw new Error("Jumlah gambar harus antara 1 dan 10.");
+  if (!Number.isInteger(total) || total < 1 || total > (featureId === "angle-generator" ? 21 : 10)) throw new Error(featureId === "angle-generator" ? "Pilih antara 1 dan 21 sudut." : "Jumlah gambar harus antara 1 dan 10.");
   const indexes = Array.from({ length: total }, (_, index) => index + 1);
   return { batchId: crypto.randomUUID(), featureId, total, slots: indexes.map(index => ({ index, status: "queued" })), runIndexes: indexes };
 }
