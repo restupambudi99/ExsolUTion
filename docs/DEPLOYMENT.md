@@ -25,6 +25,10 @@ Domain `tools.restupambudi.my.id` terhubung ke Site yang sama dengan ID domain `
 
 Aktivasi domain tidak mengganti project ID, database, bucket, audience, atau secret. Endpoint MCP dan OAuth resource yang dikembalikan Sites tetap `https://exsolution-studio.easybell32.chatgpt.site/mcp`; jangan menggantinya dengan alias domain tanpa konfirmasi metadata platform. Status DNS/SSL dan pengujian login browser merupakan pemeriksaan terpisah; keberhasilan login yang tercatat di bawah dilakukan pada origin Sites.
 
+Pembaruan tautan domain terbit sebagai saved version 3, source `ce290e91fb249860aad979b41dbfce0aa9000323`, deployment `appgdep_6ad1db3b88fc8191a4e8ea073178af86` (succeeded), environment revision 2 dan MCP aktif. Sebanyak 57 tes terkait MCP, TypeScript, dan build produksi lulus. `SITE_URL` memakai domain utama baru, sedangkan endpoint OAuth MCP tetap mengikuti metadata Sites. Commit dokumentasi verifikasi sesudahnya tidak mengubah Worker.
+
+Verifikasi akhir pada domain utama: ketiga record DNS teresolusi; request HTTPS dengan validasi sertifikat normal menghasilkan HTTP401 dan gerbang login untuk pengunjung tanpa sesi. Setelah pengguna menyelesaikan login ChatGPT, aplikasi terbuka dan `/api/session` mengonfirmasi akun pemilik dengan ID pengguna Site yang sama seperti origin alternatif. Audience tetap custom dengan revision 2. Key Gemini/9Router belum tersimpan pada akun tersebut saat pemeriksaan; tidak ada klaim uji generasi provider nyata dari pemeriksaan domain ini.
+
 ## Domain lama
 
 Percobaan menghubungkan `toolsaff.restupambudi.my.id` menghasilkan HTTP409 `custom_domain_conflict`: hostname sudah digunakan Site lama. Proyek lama tidak dapat dibaca oleh koneksi Sites saat ini. Alamat produksi baru di atas tetap berfungsi. Untuk memindahkan domain, binding lama harus dilepas dahulu oleh pemilik/pengelola yang memiliki akses atau melalui dukungan Sites; lalu gunakan `add_custom_domain` untuk Site baru dan terapkan hanya record validasi yang benar-benar dikembalikan.
