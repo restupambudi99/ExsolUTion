@@ -8,9 +8,10 @@
 - MCP dan OAuth resource terverifikasi dari Sites: https://exsolution-studio.easybell32.chatgpt.site/mcp
 - Project ID: `appgprj_6ad1ce23b43081919d3f1a5e485c2a2d`.
 - Saved version 1: `appgprj_6ad1ce23b43081919d3f1a5e485c2a2d~appgver_2ea69dfb14d08191a25219adbc57ac5c`.
-- Deployment sukses: `appgdep_6ad1d087ac58819194ec3fac1d821ef0`.
+- Deployment awal sukses: `appgdep_6ad1d087ac58819194ec3fac1d821ef0`.
+- Deployment aktif setelah konfigurasi admin: `appgdep_6ad1d1a25b448191afd62badf36b97da`.
 - Source commit versi tersebut: `c0730d9d90ca2fa96a605109350a03edad62c1c7`.
-- Environment revision: 1; AES-GCM vault memakai secret baru yang hanya disimpan pada Sites.
+- Environment revision: 2; AES-GCM vault memakai secret baru dan admin dikonfigurasi dari identitas Site terverifikasi. Nilainya hanya disimpan pada Sites.
 - Audience: custom, dengan dua akun yang telah disetujui pengguna. Nilai email dan token tidak disimpan di source.
 - 290 tes, TypeScript, dan build produksi lulus. Migrasi schema disertakan di arsip dan diterapkan Sites ketika deploy.
 
@@ -22,9 +23,9 @@ Percobaan menghubungkan `toolsaff.restupambudi.my.id` menghasilkan HTTP409 `cust
 
 ## Login, data, dan provider
 
-Platform meminta login ChatGPT sebelum aplikasi dapat dibuka. Browser pengujian berhenti pada pemeriksaan keamanan OpenAI; pemeriksaan keamanan dan login diselesaikan pengguna. Database baru dimulai kosong. Hasil generasi, preferensi runtime, dan key tersimpan pada Site lama tidak ikut riwayat Git.
+Platform meminta login ChatGPT sebelum aplikasi dapat dibuka. Pengguna menyelesaikan pemeriksaan keamanan dan login; akun pemilik telah diverifikasi melalui respons `/api/session` yang terautentikasi. Menu 21 Angle Generator terlihat di produksi. Database baru dimulai kosong. Hasil generasi, preferensi runtime, dan key tersimpan pada Site lama tidak ikut riwayat Git.
 
-Provider 9Router sudah memiliki Base URL HTTPS dan ID model nonrahasia di environment, namun tidak ada API key global yang diimpor. Isi key melalui Pengaturan AI sekali pada Site baru. MCP admin memerlukan `STUDIO_ADMIN_USER_IDS` dari identitas terverifikasi Site baru; akses admin tidak diberikan dari ID akun global atau ID Site lama.
+Provider 9Router sudah memiliki Base URL HTTPS dan ID model nonrahasia di environment, namun tidak ada API key global yang diimpor. Isi key melalui Pengaturan AI sekali pada Site baru; generasi provider nyata belum diuji pada hosting ini. `STUDIO_ADMIN_USER_IDS` sudah dikonfigurasi dari identitas terverifikasi Site baru; akses admin tidak diberikan dari ID akun global atau ID Site lama. Endpoint MCP siap, sedangkan instalasi/koneksi plugin pada tiap asisten merupakan langkah terpisah.
 
 ## Penerbitan berikutnya
 
