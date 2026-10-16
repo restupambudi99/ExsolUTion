@@ -76,6 +76,34 @@ async function geminiErrorDetails(response: Response): Promise<Record<string, un
   finally { reader.releaseLock(); }
 }
 
+function geminiRequestContractError(error: Record<string, unknown> | undefined): ProviderError | undefined {
+  const message = typeof error?.message === "string" ? error.message : "";
+  const violations = Array.isArray(error?.details) ? error.details.slice(0,64).flatMap((detail: unknown) => {
+    if (!detail || typeof detail !== "object" || !("fieldViolations" in detail) || !Array.isArray(detail.fieldViolations)) return [];
+    return detail.fieldViolations.slice(0,64).filter((value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === "object" && !Array.isArray(value)));
+  }) : [];
+  const descriptions = [message,...violations.map(violation => `${typeof violation.field === "string" ? violation.field : ""} ${typeof violation.description === "string" ? violation.description : ""}`)];
+  const unknownField = /\b(?:unknown name|unrecogni[sz]ed (?:field|parameter|name)|cannot find field|unknown (?:field|parameter))\b/i;
+  // These are our own request keys. Never copy arbitrary field paths, rejected
+  // values, descriptions, or model/project identifiers into a returned error.
+  const allowedFields = ["responseFormat", "response_format", "imageConfig", "image_config", "responseModalities", "maxOutputTokens", "inlineData", "mimeType", "contents", "parts", "generationConfig"];
+  for (const field of allowedFields) {
+    const token = new RegExp(`(?:^|[^A-Za-z0-9_])${field}(?=$|[^A-Za-z0-9_])`);
+    if ((unknownField.test(message) && token.test(message)) || violations.some(violation => typeof violation.description === "string" && unknownField.test(violation.description) && token.test(`${typeof violation.field === "string" ? violation.field : ""} ${violation.description}`))) {
+      return new ProviderError(400,"provider_configuration_invalid",`Format permintaan aplikasi belum didukung Gemini pada parameter ${field}. Konfigurasi integrasi perlu diperbaiki sebelum mencoba lagi.`);
+    }
+  }
+  if (descriptions.some(description => /\b(?:maxOutputTokens|max_output_tokens)\b/i.test(description) && /\b(?:out of range|exceeds?|greater than|above|must be (?:less than|at most|between)|too (?:large|high))\b/i.test(description))) {
+    return new ProviderError(400,"provider_configuration_invalid","Batas output token pada permintaan aplikasi tidak cocok dengan model Gemini (maxOutputTokens). Konfigurasi integrasi perlu diperbaiki sebelum mencoba lagi.");
+  }
+  if (descriptions.some(description => /\b(?:(?:unable|failed|could not|cannot) to decode (?:the |an? )?image|invalid image (?:data|format|content)|(?:unsupported|invalid) (?:image )?mime[ -]?type|provided image is not valid)\b/i.test(description))) {
+    return new ProviderError(400,"provider_invalid_request","Gemini tidak dapat membaca gambar referensi atau format filenya. Unggah ulang gambar JPG, PNG, atau WebP yang dapat dibuka, lalu coba kembali.");
+  }
+  if (descriptions.some(description => /\b(?:model (?:does not|doesn't) support (?:the )?(?:requested |image |output )?(?:response )?(?:modality|modalities|generation of images|image generation)|(?:requested |output |image )?modalit(?:y|ies) (?:is |are )?not supported|(?:image generation|image output) (?:is )?not supported (?:by|for) (?:this |the )?model)\b/i.test(description))) {
+    return new ProviderError(400,"provider_configuration_invalid","Model Gemini yang dikonfigurasi tidak mendukung jenis keluaran pada permintaan aplikasi. Pilih model gambar, teks, atau suara yang sesuai sebelum mencoba lagi.");
+  }
+}
+
 function geminiRequestError(status: number, error?: Record<string, unknown>): ProviderError {
   const keyReasons = new Set(["API_KEY_INVALID", "API_KEY_EXPIRED", "API_KEY_REVOKED"]);
   const billingReasons = new Set(["BILLING_DISABLED", "BILLING_NOT_ACTIVE", "BILLING_ACCOUNT_DISABLED", "PROJECT_BILLING_DISABLED"]);
@@ -94,8 +122,13 @@ function geminiRequestError(status: number, error?: Record<string, unknown>): Pr
   if (status === 401 || ([400,403].includes(status) && keyRejected)) return new ProviderError(502,"provider_authentication_failed","Google menolak API key Gemini ini karena tidak valid, kedaluwarsa, atau sudah dicabut. Gunakan key aktif dari Google AI Studio.");
   if (status === 402) return new ProviderError(402,"provider_payment_required","Kredit atau pembayaran Gemini belum mencukupi. Periksa saldo Prepay dan billing proyek Google AI Studio yang memiliki key ini sebelum mencoba lagi.");
   if ([400,403].includes(status) && billingRequired) return new ProviderError(400,"provider_billing_required","Billing proyek Gemini belum aktif. Aktifkan billing untuk proyek Google AI Studio yang memiliki key ini; model gambar tidak menyediakan kuota gratis.");
+  if ([400,403].includes(status) && /\b(?:user location is not (?:supported|allowed)|(?:Gemini API|API use) is not (?:available|supported) in (?:your|this) (?:country|region)|location is not supported for (?:the )?API use)\b/i.test(message)) return new ProviderError(400,"provider_region_unsupported","Gemini belum mendukung lokasi akun atau server yang memproses permintaan ini. Periksa wilayah yang didukung Google AI Studio atau gunakan provider lain yang tersedia.");
+  if (status === 400) {
+    const contractError = geminiRequestContractError(error);
+    if (contractError) return contractError;
+  }
   if (status === 400 && [code,upstreamStatus].some(value => value === "FAILED_PRECONDITION" || value === "failed_precondition")) return new ProviderError(400,"provider_precondition_failed","Prasyarat akun atau proyek Gemini belum terpenuhi. Periksa status proyek, ketersediaan layanan di wilayah akun, dan billing di Google AI Studio.");
-  if (status === 400) return new ProviderError(400,"provider_invalid_request","Gemini tidak menerima permintaan ini. Periksa instruksi dan opsi model.");
+  if (status === 400) return new ProviderError(400,"provider_invalid_request",`Gemini tidak menerima format atau opsi permintaan aplikasi ini${upstreamStatus === "INVALID_ARGUMENT" ? " (INVALID_ARGUMENT)" : ""}. Periksa instruksi, gambar referensi, dan konfigurasi model.`);
   if (status === 403) return new ProviderError(403,"provider_access_denied","Key Gemini tidak diizinkan mengakses layanan atau model ini. Periksa batasan key, izin proyek, dan akses model di Google AI Studio.");
   if (status === 404) return new ProviderError(503,"provider_model_unavailable","Model Gemini belum tersedia untuk API key ini. Pilih model yang tersedia di akun Google AI Studio.");
   if (status === 429) return new ProviderError(429,"provider_quota_exceeded","Kuota atau batas permintaan Gemini tercapai. Periksa kuota dan billing proyek Google AI Studio; model gambar tidak menyediakan kuota gratis.");
