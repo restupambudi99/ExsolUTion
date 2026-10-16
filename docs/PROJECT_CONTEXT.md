@@ -17,22 +17,30 @@ Pengguna telah meminta agar seluruh source proyek dan perkembangan selanjutnya d
 | Komponen | Identitas |
 | --- | --- |
 | Site baru | `appgprj_6ad1ce23b43081919d3f1a5e485c2a2d` |
-| Origin Site baru | `https://exsolution-studio.easybell32.chatgpt.site` |
+| Domain utama | `https://tools.restupambudi.my.id` |
+| Origin Sites alternatif | `https://exsolution-studio.easybell32.chatgpt.site` |
 | Manifest sumber | `.openai/hosting.json` |
 | Binding database | `DB` |
 | Binding file | `BUCKET` |
 | Capability platform | `mcp` |
-| Domain yang ingin digunakan | `https://toolsaff.restupambudi.my.id` |
+| Endpoint MCP dan OAuth resource | `https://exsolution-studio.easybell32.chatgpt.site/mcp` |
+| Domain legacy pada Site lama | `https://toolsaff.restupambudi.my.id` |
 
 Site lama `appgprj_6acfac3a374c8191b6c74ab684fa837b` sudah tidak menjadi tujuan penerbitan checkout ini. Site baru dibuat atas permintaan pengguna setelah proyek lama tidak dapat ditemukan oleh koneksi Sites.
 
-**Status terverifikasi 16 Oktober 2026:** Site pengganti berhasil dipublikasikan di `https://exsolution-studio.easybell32.chatgpt.site`. Versi 1 menjalankan source commit `c0730d9d90ca2fa96a605109350a03edad62c1c7`, dengan environment revision 2 dan MCP aktif. Pemilik sudah login; menu 21 Angle Generator terlihat online. Admin baru dikonfigurasi dari identitas Site yang terverifikasi dan disimpan sebagai runtime secret. Riwayat source 19 commit awal ditambah implementasi terbaru disimpan pada branch `main` GitHub.
+**Status terverifikasi 16 Oktober 2026:** domain `tools.restupambudi.my.id` telah terhubung ke Site pengganti. Sites mengembalikan status domain, provider, dan SSL **active**, serta `current_live_url` pada domain baru. Cloudflare memakai CNAME `tools` ke `custom-domains.chatgpt.site` dengan DNS only dan TTL Auto, ditambah dua record TXT validasi yang disediakan Sites. Tidak ada perubahan nameserver atau record domain lama. Ini menggunakan Site, database, bucket, environment, dan audience yang sama dengan origin alternatif; bukan pembuatan aplikasi baru.
+
+Versi 2 sebelum pembaruan tautan domain menjalankan source commit `46099bcd43659ce45573a9b759ce60b1fa1755bf`, deployment `appgdep_6ad1d4db271081919f0752e3e7cd87c9`, environment revision 2, dan MCP aktif. Perbaikan validasi Gemini pada versi tersebut telah melewati 295 tes, TypeScript, dan build. Pemilik telah login dan menu 21 Angle Generator telah terlihat pada origin Sites; pengujian login domain baru dicatat terpisah dari aktivasi DNS/SSL. Admin dikonfigurasi dari identitas Site yang terverifikasi dan disimpan sebagai runtime secret. Riwayat source 19 commit awal ditambah implementasi terbaru disimpan pada branch `main` GitHub.
+
+MCP tetap memakai endpoint dan OAuth resource dari `get_site`, yaitu `https://exsolution-studio.easybell32.chatgpt.site/mcp`. Domain utama website tidak otomatis menjadi resource OAuth MCP. Pertahankan endpoint tersebut sampai metadata platform mengonfirmasi perubahan; jangan mengganti URL pada command client hanya berdasarkan keberhasilan DNS/SSL website.
 
 `toolsaff.restupambudi.my.id` masih terikat ke Site lama. Percobaan memasangnya ke Site baru ditolak Sites dengan **409 `custom_domain_conflict` / already in use**. Binding lama perlu dilepas melalui pengelolaan proyek lama atau bantuan pengelola Sites sebelum domain dapat dipasang kembali. Jangan mengklaim domain lama menampilkan versi baru atau mengganti DNS untuk menyembunyikan konflik ini.
 
 Penerbitan Site baru tidak memindahkan database, file, identitas pengguna, atau rahasia server lama. Site baru memiliki D1/R2 terpisah dan secret enkripsi baru. Pengguna mengisi API key langsung pada Pengaturan AI Site baru. Identitas admin runtime berasal dari login terverifikasi pada Site baru; admin Site lama tidak disalin. Tidak ada API key provider global yang diimpor; generasi provider nyata belum diuji pada hosting pengganti ini.
 
 Gunakan ID dalam manifest sebagai acuan penerbitan dan konfirmasikan identitas proyek melalui `get_site`. Jangan mengambil ID tujuan dari pesan lama atau mengembalikan manifest ke proyek lama. Daftar akses akun dikelola melalui audience Site; jangan menaruh email pengguna pada source publik.
+
+Browser memisahkan cookie dan localStorage menurut hostname. Pada domain baru, login atau preferensi tampilan/provider lokal dapat perlu diatur kembali; hal ini bukan migrasi atau penghapusan brankas server. Verifikasi identitas melalui `/api/session` setelah login pada domain baru, tanpa melemahkan audience atau pemeriksaan origin.
 
 ## Arsitektur aplikasi
 

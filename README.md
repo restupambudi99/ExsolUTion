@@ -4,7 +4,7 @@ Brand ditulis **ExsolUTion**, dengan huruf **E**, **U**, dan **T** kapital; huru
 
 Repositori utama: [restupambudi99/ExsolUTion](https://github.com/restupambudi99/ExsolUTion). Baca [konteks proyek](docs/PROJECT_CONTEXT.md) dan [AGENTS.md](AGENTS.md) sebelum melanjutkan pekerjaan. Source, migrasi, tes, dan riwayat pengembangan disimpan di repositori ini; rahasia server dan data pengguna disimpan terpisah pada hosting.
 
-Hosting pengganti: [ExsolUTion Studio](https://exsolution-studio.easybell32.chatgpt.site). Status domain `toolsaff.restupambudi.my.id` dicatat di konteks proyek. Panduan koneksi asisten tersedia pada halaman **MCP & Plugin** (`/integrations`) setelah login dan pada [docs/MCP.md](docs/MCP.md).
+Alamat utama: [ExsolUTion Studio](https://tools.restupambudi.my.id). Origin Sites [exsolution-studio.easybell32.chatgpt.site](https://exsolution-studio.easybell32.chatgpt.site) tetap tersedia sebagai alamat alternatif untuk Site yang sama. Domain lama `toolsaff.restupambudi.my.id` masih terikat ke proyek lama; statusnya dicatat di konteks proyek. Panduan koneksi asisten tersedia pada halaman [MCP & Plugin](https://tools.restupambudi.my.id/integrations) setelah login dan pada [docs/MCP.md](docs/MCP.md). Endpoint MCP tetap memakai origin OAuth yang disediakan Sites.
 
 Implementasi SaaS mandiri berdasarkan referensi asli [Affiliate GO di Gemini Canvas](https://gemini.google.com/share/50a05a6652ae), ditambah [21 Angle Generator](docs/angle-generator.md). Registry mencakup **83 menu utama dan 20 mode tambahan**. Jumlah ini menunjukkan cakupan menu dan formulir; keberhasilan setiap keluaran AI tetap bergantung pada provider dan akses model.
 

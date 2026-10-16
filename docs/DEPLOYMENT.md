@@ -3,19 +3,27 @@
 ## Hasil 16 Oktober 2026
 
 - GitHub authoritative: https://github.com/restupambudi99/ExsolUTion
-- Produksi aktif: https://exsolution-studio.easybell32.chatgpt.site
-- 21 Angle Generator: https://exsolution-studio.easybell32.chatgpt.site/?tool=angle-generator
+- Domain utama: https://tools.restupambudi.my.id
+- Origin Sites alternatif: https://exsolution-studio.easybell32.chatgpt.site
+- 21 Angle Generator: https://tools.restupambudi.my.id/?tool=angle-generator
+- Panduan MCP & Plugin: https://tools.restupambudi.my.id/integrations
 - MCP dan OAuth resource terverifikasi dari Sites: https://exsolution-studio.easybell32.chatgpt.site/mcp
 - Project ID: `appgprj_6ad1ce23b43081919d3f1a5e485c2a2d`.
-- Saved version 1: `appgprj_6ad1ce23b43081919d3f1a5e485c2a2d~appgver_2ea69dfb14d08191a25219adbc57ac5c`.
+- Saved version 1 awal: `appgprj_6ad1ce23b43081919d3f1a5e485c2a2d~appgver_2ea69dfb14d08191a25219adbc57ac5c`.
 - Deployment awal sukses: `appgdep_6ad1d087ac58819194ec3fac1d821ef0`.
-- Deployment aktif setelah konfigurasi admin: `appgdep_6ad1d1a25b448191afd62badf36b97da`.
-- Source commit versi tersebut: `c0730d9d90ca2fa96a605109350a03edad62c1c7`.
+- Deployment versi 2 sebelum pembaruan tautan domain: `appgdep_6ad1d4db271081919f0752e3e7cd87c9` (sukses).
+- Source commit versi 2 tersebut: `46099bcd43659ce45573a9b759ce60b1fa1755bf`.
 - Environment revision: 2; AES-GCM vault memakai secret baru dan admin dikonfigurasi dari identitas Site terverifikasi. Nilainya hanya disimpan pada Sites.
 - Audience: custom, dengan dua akun yang telah disetujui pengguna. Nilai email dan token tidak disimpan di source.
-- 290 tes, TypeScript, dan build produksi lulus. Migrasi schema disertakan di arsip dan diterapkan Sites ketika deploy.
+- 295 tes, TypeScript, dan build produksi lulus untuk versi 2, termasuk perbaikan validasi key Gemini. Migrasi schema disertakan di arsip dan diterapkan Sites ketika deploy.
 
 Commit dokumentasi setelah commit source di atas tidak mengubah kode Worker yang sudah terbit. Gunakan sumber versi dan deployment sebagai provenance ketika memeriksa production.
+
+## Domain utama baru
+
+Domain `tools.restupambudi.my.id` terhubung ke Site yang sama dengan ID domain `appgdom_6ad1d82a636481918cae1c1a1861a397`. Sites mengonfirmasi status domain **active**, provider **active**, SSL **active**, dan `current_live_url` pada domain tersebut. DNS Cloudflare memakai CNAME `tools` ke `custom-domains.chatgpt.site` dengan mode DNS only dan TTL Auto, serta dua TXT validasi dari Sites. Record lain dan nameserver tetap dipertahankan. Nilai TXT tidak perlu disalin ke repository.
+
+Aktivasi domain tidak mengganti project ID, database, bucket, audience, atau secret. Endpoint MCP dan OAuth resource yang dikembalikan Sites tetap `https://exsolution-studio.easybell32.chatgpt.site/mcp`; jangan menggantinya dengan alias domain tanpa konfirmasi metadata platform. Status DNS/SSL dan pengujian login browser merupakan pemeriksaan terpisah; keberhasilan login yang tercatat di bawah dilakukan pada origin Sites.
 
 ## Domain lama
 

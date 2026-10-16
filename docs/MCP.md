@@ -1,10 +1,10 @@
 # MCP & Plugin ExsolUTion
 
-Panduan ini ditujukan untuk pemeliharaan ExsolUTion dengan Codex, ChatGPT, atau Claude Code. Panduan visual setelah login tersedia di [halaman MCP & Plugin](https://exsolution-studio.easybell32.chatgpt.site/integrations).
+Panduan ini ditujukan untuk pemeliharaan ExsolUTion dengan Codex, ChatGPT, atau Claude Code. Panduan visual setelah login tersedia di [halaman MCP & Plugin](https://tools.restupambudi.my.id/integrations). Origin Sites `https://exsolution-studio.easybell32.chatgpt.site` tetap menjadi alamat alternatif untuk aplikasi yang sama.
 
 ## Koneksi
 
-Endpoint remote HTTP MCP: `https://exsolution-studio.easybell32.chatgpt.site/mcp`. Nilai canonical berada pada `lib/studio-mcp-info.ts`; gunakan nilai tersebut jika hostname berubah. Autentikasi dan OAuth ditangani platform Sites. Akses mengikuti audience custom ExsolUTion, bukan email atau identitas yang dikirim dalam argumen tool.
+Endpoint remote HTTP MCP: `https://exsolution-studio.easybell32.chatgpt.site/mcp`. Domain utama website adalah `https://tools.restupambudi.my.id`, sedangkan endpoint dan OAuth resource MCP tetap pada origin yang dikonfirmasi Sites. Nilai canonical keduanya berada pada `lib/studio-mcp-info.ts`; perubahan domain website tidak otomatis mengganti resource OAuth atau command koneksi. Autentikasi dan OAuth ditangani platform Sites. Akses mengikuti audience custom ExsolUTion, bukan email atau identitas yang dikirim dalam argumen tool.
 
 ### Codex dan ChatGPT
 

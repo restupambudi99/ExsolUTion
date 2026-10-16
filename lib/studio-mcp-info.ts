@@ -1,4 +1,4 @@
-export const SITE_URL = "https://exsolution-studio.easybell32.chatgpt.site";
+export const SITE_URL = "https://tools.restupambudi.my.id";
 // Exact endpoint/resource returned by Sites; keep OAuth on its provisioned origin.
 export const MCP_URL = "https://exsolution-studio.easybell32.chatgpt.site/mcp";
 
