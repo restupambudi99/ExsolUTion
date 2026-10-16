@@ -26,7 +26,11 @@ Pengguna telah meminta agar seluruh source proyek dan perkembangan selanjutnya d
 
 Site lama `appgprj_6acfac3a374c8191b6c74ab684fa837b` sudah tidak menjadi tujuan penerbitan checkout ini. Site baru dibuat atas permintaan pengguna setelah proyek lama tidak dapat ditemukan oleh koneksi Sites.
 
-**Pada saat pemindahan source, `toolsaff.restupambudi.my.id` masih mengarah ke Site lama.** Penerbitan Site baru tidak otomatis memindahkan domain, database, file, identitas pengguna, atau rahasia server lama. Periksa status domain melalui pengelolaan Sites dan DNS sebelum menyatakan domain telah berpindah. Setelah perubahan hosting atau domain berhasil, perbarui catatan ini dengan hasil yang sudah diverifikasi.
+**Status terverifikasi 16 Oktober 2026:** Site pengganti berhasil dipublikasikan di `https://exsolution-studio.easybell32.chatgpt.site`. Versi 1 menjalankan source commit `c0730d9d90ca2fa96a605109350a03edad62c1c7`, dengan environment revision 1 dan MCP aktif. Riwayat source 19 commit awal ditambah implementasi terbaru telah diunggah ke branch `main` GitHub.
+
+`toolsaff.restupambudi.my.id` masih terikat ke Site lama. Percobaan memasangnya ke Site baru ditolak Sites dengan **409 `custom_domain_conflict` / already in use**. Binding lama perlu dilepas melalui pengelolaan proyek lama atau bantuan pengelola Sites sebelum domain dapat dipasang kembali. Jangan mengklaim domain lama menampilkan versi baru atau mengganti DNS untuk menyembunyikan konflik ini.
+
+Penerbitan Site baru tidak memindahkan database, file, identitas pengguna, atau rahasia server lama. Site baru memiliki D1/R2 terpisah dan secret enkripsi baru. Pengguna mengisi API key langsung pada Pengaturan AI Site baru. Identitas admin runtime harus berasal dari login terverifikasi pada Site baru; admin Site lama tidak disalin.
 
 Gunakan ID dalam manifest sebagai acuan penerbitan dan konfirmasikan identitas proyek melalui `get_site`. Jangan mengambil ID tujuan dari pesan lama atau mengembalikan manifest ke proyek lama. Daftar akses akun dikelola melalui audience Site; jangan menaruh email pengguna pada source publik.
 
