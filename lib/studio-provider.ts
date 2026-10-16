@@ -26,7 +26,31 @@ const API_HOST = "https://generativelanguage.googleapis.com";
 const MAX_RESPONSE_BYTES = 32 * 1024 * 1024;
 const MAX_ERROR_BYTES = 32 * 1024;
 const MAX_OUTPUT_BYTES = 20 * 1024 * 1024;
-const ASPECT_RATIOS = new Set(["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9", "1:4", "4:1", "1:8", "8:1"]);
+// REST v1 ImageResponseFormat requires protobuf enum names, not the shorthand
+// used by UI controls and some SDK examples. Keep persisted/UI values unchanged.
+// https://generativelanguage.googleapis.com/$discovery/rest?version=v1
+const IMAGE_ASPECT_RATIOS: Record<string, string> = {
+  "1:1": "ASPECT_RATIO_ONE_BY_ONE",
+  "2:3": "ASPECT_RATIO_TWO_BY_THREE",
+  "3:2": "ASPECT_RATIO_THREE_BY_TWO",
+  "3:4": "ASPECT_RATIO_THREE_BY_FOUR",
+  "4:3": "ASPECT_RATIO_FOUR_BY_THREE",
+  "4:5": "ASPECT_RATIO_FOUR_BY_FIVE",
+  "5:4": "ASPECT_RATIO_FIVE_BY_FOUR",
+  "9:16": "ASPECT_RATIO_NINE_BY_SIXTEEN",
+  "16:9": "ASPECT_RATIO_SIXTEEN_BY_NINE",
+  "21:9": "ASPECT_RATIO_TWENTY_ONE_BY_NINE",
+  "1:4": "ASPECT_RATIO_ONE_BY_FOUR",
+  "4:1": "ASPECT_RATIO_FOUR_BY_ONE",
+  "1:8": "ASPECT_RATIO_ONE_BY_EIGHT",
+  "8:1": "ASPECT_RATIO_EIGHT_BY_ONE",
+};
+const IMAGE_SIZES: Record<string, string> = { "1K": "IMAGE_SIZE_ONE_K", "2K": "IMAGE_SIZE_TWO_K", "4K": "IMAGE_SIZE_FOUR_K" };
+
+function imageEnum(values: unknown[], mapping: Record<string, string>): string | undefined {
+  const value = values.find((item): item is string => typeof item === "string" && Object.hasOwn(mapping,item));
+  return value === undefined ? undefined : mapping[value];
+}
 const VOICES = new Set(["Zephyr", "Puck", "Charon", "Kore", "Fenrir", "Leda", "Orus", "Aoede", "Callirrhoe", "Autonoe", "Enceladus", "Iapetus", "Umbriel", "Algieba", "Despina", "Erinome", "Algenib", "Rasalgethi", "Laomedeia", "Achernar", "Alnilam", "Schedar", "Gacrux", "Pulcherrima", "Achird", "Zubenelgenubi", "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat"]);
 
 export function isGeminiVoice(value: unknown): value is string {
@@ -237,8 +261,8 @@ export async function generateWithGemini(input: GenerateInput, featureIntent: st
   const generationConfig: Record<string, unknown> = { maxOutputTokens: input.kind === "image" ? 32_768 : 8192 };
   if (input.kind === "image") {
     generationConfig.responseModalities = ["TEXT", "IMAGE"];
-    const aspectRatio = [input.options.aspectRatio, input.options.ratio, input.options.aspect_ratio].find((value) => typeof value === "string" && ASPECT_RATIOS.has(value));
-    const imageSize = [input.options.resolution, input.options.imageSize].find((value) => ["1K", "2K", "4K"].includes(String(value)));
+    const aspectRatio = imageEnum([input.options.aspectRatio, input.options.ratio, input.options.aspect_ratio],IMAGE_ASPECT_RATIOS);
+    const imageSize = imageEnum([input.options.resolution, input.options.imageSize],IMAGE_SIZES);
     if (aspectRatio || imageSize) generationConfig.responseFormat = { image: { ...(aspectRatio ? { aspectRatio } : {}), ...(imageSize ? { imageSize } : {}) } };
   }
   const model = validModel(input.kind === "image" ? settings.imageModel : settings.textModel);
