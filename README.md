@@ -80,6 +80,8 @@ Tes koneksi memeriksa endpoint daftar model, bukan membuat hasil AI. Daftar chat
 
 Provider yang dipilih dan konfigurasi model nonrahasia dapat diingat di browser untuk profil pengguna tersebut. Status kredensial tersimpan dibedakan dari ketersediaan model dan kuota saat ini. Pengaturan provider tidak dapat diubah saat proses generasi sedang berjalan. Retry otomatis hanya diberikan untuk kegagalan provider sementara yang telah dikonfirmasi; respons sukses dan permintaan yang statusnya belum pasti tidak digenerasi ulang secara diam-diam.
 
+Jika batch gambar gagal, penyebab ditampilkan langsung pada Hasil Kreasi bersama ID permintaan. Kendala bersama seperti billing, izin, model, atau key menghentikan antrean setelah penolakan pertama; gambar yang belum dikirim tidak dilaporkan sebagai hasil. Pada Gemini, uji katalog yang berhasil belum membuktikan kuota atau billing gambar tersedia. Pesan error Google diklasifikasikan dengan batas pembacaan kecil tanpa menampilkan isi respons upstream atau rahasia pengguna. Periksa [ketentuan model dan billing Google](https://ai.google.dev/gemini-api/docs/pricing) bila pesan menunjukkan billing atau kuota.
+
 Kontrak endpoint 9Router mengikuti [dokumentasi resmi](https://github.com/decolua/9router): chat `/chat/completions`, gambar `/images/generations`, dan suara `/audio/speech`. Model dan format yang tersedia mengikuti versi serta koneksi upstream pada instance pengguna. Kegagalan katalog media opsional ditampilkan sebagai peringatan tanpa menghilangkan katalog teks yang berhasil dimuat. Kemampuan rasio gambar mengikuti adaptor upstream; aplikasi tidak mengubah rasio pilihan menjadi dimensi lain lalu mengklaim keduanya sama.
 
 ## Akun, penyimpanan, dan publishing

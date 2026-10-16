@@ -53,9 +53,20 @@ function describeError(error: unknown): BatchSlotError {
   };
 }
 
-function fatalFailure(error: unknown): boolean {
+const BATCH_BLOCKING_CODES = new Set([
+  "authentication_required", "access_denied", "rate_limited",
+  "provider_authentication_failed", "provider_token_revoked", "provider_not_configured",
+  "provider_configuration_invalid", "provider_invalid_request", "provider_model_unavailable",
+  "provider_quota_exceeded", "provider_precondition_failed", "provider_billing_required",
+  "provider_payment_required", "provider_access_denied", "provider_region_unsupported",
+  "router_provider_reauthentication_required", "router_generation_authentication_failed",
+  "router_model_required", "invalid_router_model", "router_request_rejected", "router_capability_unavailable",
+]);
+
+/** Shared provider/account failures cannot be fixed by sending the next scene. */
+export function isBatchBlockingError(error: unknown): boolean {
   const failure = describeError(error);
-  return [401, 403, 429].includes(failure.status || 0) || /^(authentication_required|access_denied|provider_(authentication_failed|token_revoked|not_configured|configuration_invalid)|router_provider_reauthentication_required)$/.test(failure.code || "");
+  return [401, 402, 403, 429].includes(failure.status || 0) || BATCH_BLOCKING_CODES.has(failure.code || "");
 }
 
 function retryableFailure(failure: BatchSlotError): boolean {
@@ -129,7 +140,7 @@ export async function runBatch(batch: GenerationBatch, options: RunBatchOptions)
       } catch (error) {
         const unresolved = options.isUnresolved(error);
         const failure = describeError(error);
-        const stop = unresolved || fatalFailure(error) || !!options.shouldStop?.(error);
+        const stop = unresolved || isBatchBlockingError(error) || !!options.shouldStop?.(error);
         if (!stop && automaticRetries === 0 && retryableFailure(failure) && !options.shouldCancel?.()) {
           update(slot.index, { status: "running", retrying: true, error: failure, requestId: failure.requestId });
           await retryBackoff(options);

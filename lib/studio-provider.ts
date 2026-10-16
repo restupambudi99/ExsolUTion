@@ -24,6 +24,7 @@ export class ProviderError extends Error {
 
 const API_HOST = "https://generativelanguage.googleapis.com";
 const MAX_RESPONSE_BYTES = 32 * 1024 * 1024;
+const MAX_ERROR_BYTES = 32 * 1024;
 const MAX_OUTPUT_BYTES = 20 * 1024 * 1024;
 const ASPECT_RATIOS = new Set(["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9", "1:4", "4:1", "1:8", "8:1"]);
 const VOICES = new Set(["Zephyr", "Puck", "Charon", "Kore", "Fenrir", "Leda", "Orus", "Aoede", "Callirrhoe", "Autonoe", "Enceladus", "Iapetus", "Umbriel", "Algieba", "Despina", "Erinome", "Algenib", "Rasalgethi", "Laomedeia", "Achernar", "Alnilam", "Schedar", "Gacrux", "Pulcherrima", "Achird", "Zubenelgenubi", "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat"]);
@@ -48,6 +49,60 @@ export function outputLanguage(value: unknown) {
   return language;
 }
 
+async function geminiErrorDetails(response: Response): Promise<Record<string, unknown> | undefined> {
+  // Upstream errors can contain credentials, project IDs, or submitted content.
+  // Keep them server-side and return only classifications with app-owned wording.
+  if (!response.body) return;
+  if (Number(response.headers.get("content-length")) > MAX_ERROR_BYTES || !/^application\/(?:json|[a-z0-9.+-]+\+json)(?:\s*;|$)/i.test(response.headers.get("content-type") || "")) {
+    await response.body.cancel();
+    return;
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let text = "", bytes = 0;
+  try {
+    while (true) {
+      const part = await reader.read();
+      if (part.done) break;
+      bytes += part.value.byteLength;
+      if (bytes > MAX_ERROR_BYTES) { await reader.cancel(); return; }
+      text += decoder.decode(part.value, { stream: true });
+    }
+    const parsed: unknown = JSON.parse(text + decoder.decode());
+    if (!parsed || typeof parsed !== "object" || !("error" in parsed)) return;
+    const error = parsed.error;
+    if (error && typeof error === "object" && !Array.isArray(error)) return error as Record<string, unknown>;
+  } catch { /* The HTTP status remains authoritative for malformed or unreadable error bodies. */ }
+  finally { reader.releaseLock(); }
+}
+
+function geminiRequestError(status: number, error?: Record<string, unknown>): ProviderError {
+  const keyReasons = new Set(["API_KEY_INVALID", "API_KEY_EXPIRED", "API_KEY_REVOKED"]);
+  const billingReasons = new Set(["BILLING_DISABLED", "BILLING_NOT_ACTIVE", "BILLING_ACCOUNT_DISABLED", "PROJECT_BILLING_DISABLED"]);
+  const reasons = Array.isArray(error?.details) ? error.details.slice(0,64).flatMap((detail: unknown) => {
+    if (!detail || typeof detail !== "object" || !("reason" in detail) || typeof detail.reason !== "string") return [];
+    return keyReasons.has(detail.reason) || billingReasons.has(detail.reason) ? [detail.reason] : [];
+  }) : [];
+  const code = typeof error?.code === "string" ? error.code : "";
+  const upstreamStatus = typeof error?.status === "string" ? error.status : "";
+  const message = typeof error?.message === "string" ? error.message : "";
+  const keyRejected = reasons.some(reason => keyReasons.has(reason)) || [code,upstreamStatus].some(value => keyReasons.has(value) || value === "authentication")
+    || /\bAPI key (?:not valid|invalid|expired|revoked|is (?:invalid|expired|revoked)|has expired)\b/i.test(message);
+  const billingRequired = reasons.some(reason => billingReasons.has(reason)) || [code,upstreamStatus].some(value => billingReasons.has(value))
+    || /\bbilling (?:is (?:disabled|not enabled|not active)|has (?:not been enabled|been disabled)|must be enabled)\b/i.test(message)
+    || /\b(?:enable|activate) billing (?:on|for|in)\b/i.test(message);
+  if (status === 401 || ([400,403].includes(status) && keyRejected)) return new ProviderError(502,"provider_authentication_failed","Google menolak API key Gemini ini karena tidak valid, kedaluwarsa, atau sudah dicabut. Gunakan key aktif dari Google AI Studio.");
+  if (status === 402) return new ProviderError(402,"provider_payment_required","Kredit atau pembayaran Gemini belum mencukupi. Periksa saldo Prepay dan billing proyek Google AI Studio yang memiliki key ini sebelum mencoba lagi.");
+  if ([400,403].includes(status) && billingRequired) return new ProviderError(400,"provider_billing_required","Billing proyek Gemini belum aktif. Aktifkan billing untuk proyek Google AI Studio yang memiliki key ini; model gambar tidak menyediakan kuota gratis.");
+  if (status === 400 && [code,upstreamStatus].some(value => value === "FAILED_PRECONDITION" || value === "failed_precondition")) return new ProviderError(400,"provider_precondition_failed","Prasyarat akun atau proyek Gemini belum terpenuhi. Periksa status proyek, ketersediaan layanan di wilayah akun, dan billing di Google AI Studio.");
+  if (status === 400) return new ProviderError(400,"provider_invalid_request","Gemini tidak menerima permintaan ini. Periksa instruksi dan opsi model.");
+  if (status === 403) return new ProviderError(403,"provider_access_denied","Key Gemini tidak diizinkan mengakses layanan atau model ini. Periksa batasan key, izin proyek, dan akses model di Google AI Studio.");
+  if (status === 404) return new ProviderError(503,"provider_model_unavailable","Model Gemini belum tersedia untuk API key ini. Pilih model yang tersedia di akun Google AI Studio.");
+  if (status === 429) return new ProviderError(429,"provider_quota_exceeded","Kuota atau batas permintaan Gemini tercapai. Periksa kuota dan billing proyek Google AI Studio; model gambar tidak menyediakan kuota gratis.");
+  if ([408,504,522,524].includes(status)) return new ProviderError(504,"provider_timeout","Gemini melewati batas waktu. Permintaan ini tidak diulang otomatis karena hasil upstream belum dapat dipastikan.");
+  return new ProviderError(502,"provider_unavailable","Gemini sedang tidak tersedia. Coba lagi nanti.");
+}
+
 async function providerJson(path: string, body: unknown, key: string): Promise<Record<string, unknown>> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), body === undefined ? 20_000 : 120_000);
@@ -58,14 +113,11 @@ async function providerJson(path: string, body: unknown, key: string): Promise<R
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
     if (!response.ok) {
-      await response.body?.cancel();
-      if (response.status >= 300 && response.status < 400) throw new ProviderError(502,"provider_redirect_refused","Gemini mengembalikan redirect yang tidak diizinkan. Periksa endpoint dan koneksi provider.");
-      if (response.status === 400) throw new ProviderError(400, "provider_invalid_request", "Gemini tidak menerima permintaan ini. Periksa instruksi dan opsi model.");
-      if (response.status === 401 || response.status === 403) throw new ProviderError(502, "provider_authentication_failed", "API key tidak valid atau belum memiliki akses ke model Gemini.");
-      if (response.status === 404) throw new ProviderError(503, "provider_model_unavailable", "Model Gemini belum tersedia untuk API key ini. Pilih model yang tersedia di akun Google AI Studio.");
-      if (response.status === 429) throw new ProviderError(429, "provider_quota_exceeded", "Kuota Gemini habis atau batas permintaan tercapai. Periksa billing dan kuota Google AI Studio.");
-      if ([408,504,522,524].includes(response.status)) throw new ProviderError(504,"provider_timeout","Gemini melewati batas waktu. Permintaan ini tidak diulang otomatis karena hasil upstream belum dapat dipastikan.");
-      throw new ProviderError(502, "provider_unavailable", "Gemini sedang tidak tersedia. Coba lagi nanti.");
+      if (response.status >= 300 && response.status < 400) {
+        await response.body?.cancel();
+        throw new ProviderError(502,"provider_redirect_refused","Gemini mengembalikan redirect yang tidak diizinkan. Periksa endpoint dan koneksi provider.");
+      }
+      throw geminiRequestError(response.status,await geminiErrorDetails(response));
     }
     if (Number(response.headers.get("content-length")) > MAX_RESPONSE_BYTES) {
       await response.body?.cancel();
@@ -98,7 +150,11 @@ export async function testGeminiConnection(settings: ProviderSettings) {
   const response = await providerJson("/v1beta/models?pageSize=1000",undefined,settings.apiKey);
   if (!Array.isArray(response.models)) throw new ProviderError(502,"provider_invalid_response","Katalog model Gemini tidak valid.");
   const models = [...new Set(response.models.filter((item) => item && typeof item === "object" && typeof item.name === "string" && /^models\/[a-z0-9.-]{1,150}$/.test(item.name) && !item.name.includes(settings.apiKey)).map((item) => String(item.name).replace(/^models\//,"")))];
-  return { ok: true, provider: "gemini", models, imageModels: models.filter((model) => /image|banana|imagen/.test(model)), audioModels: models.filter((model) => /tts/.test(model)) };
+  const warnings = ["Koneksi katalog berhasil. Uji ini belum membuat gambar atau memeriksa kuota dan billing generasi."];
+  if (!models.includes(settings.imageModel)) warnings.push("Model gambar yang dikonfigurasi tidak tercantum dalam katalog key ini. Periksa akses model sebelum membuat gambar.");
+  if (!models.includes(settings.textModel)) warnings.push("Model teks yang dikonfigurasi tidak tercantum dalam katalog key ini.");
+  if (!models.includes(settings.audioModel)) warnings.push("Model suara yang dikonfigurasi tidak tercantum dalam katalog key ini.");
+  return { ok: true, provider: "gemini", models, imageModels: models.filter((model) => /image|banana|imagen/.test(model)), audioModels: models.filter((model) => /tts/.test(model)), warnings };
 }
 
 function binaryOutput(data: unknown, mime: unknown, kind: "image" | "audio"): ProviderOutput {
