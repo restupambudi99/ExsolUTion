@@ -64,6 +64,8 @@ Jangan mengganti identifier teknis lama secara massal hanya karena rebrand. Pref
 
 ## Pemeriksaan dan penerbitan
 
+Perbaikan 2026-10-16: validator Gemini menerima standard key dan auth key Google baru (`AQ.…`), termasuk tanda titik dan panjang sampai 4096 karakter. Batas keamanan header tetap berlaku; isi key diteruskan utuh setelah trim awal/akhir. Regresi mencakup GET katalog, generate, penyimpanan terenkripsi, serta pemakaian kembali pada permintaan baru. Jangan mengembalikan validasi ke pola key lama 20–256 karakter. Validitas key nyata dan hak model tetap ditentukan respons Google, bukan tes fixture.
+
 1. Baca manifest dan konteks ini, periksa status Git serta diff, dan cocokkan Site melalui `get_site`.
 2. Untuk editing/publishing hosted, ikuti skill Sites yang tersedia: buat kredensial tulis source berumur pendek, buka source melalui helper, pertahankan perubahan lokal yang relevan, lalu jalankan pemeriksaan, build, packaging, dan sinkronisasi source melalui workflow yang didukung.
 3. Jalankan tes yang sesuai. Untuk pemeriksaan menyeluruh di PowerShell:

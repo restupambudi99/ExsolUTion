@@ -62,7 +62,10 @@ export function validateProviderSelection(value: Record<string, unknown>): Provi
   if (value.apiKey !== undefined && value.apiKey !== "") {
     if (typeof value.apiKey !== "string") throw new ValidationError("Format API key tidak valid.");
     const key = value.apiKey.trim();
-    if (provider === "gemini" ? !/^[A-Za-z0-9_-]{20,256}$/.test(key) : !/^[\x21-\x7e]{1,4096}$/.test(key)) throw new ValidationError("Format API key tidak valid.");
+    // Google issues both standard keys and longer authorization keys (AQ.).
+    // Treat credentials as opaque header values; Google verifies their validity.
+    if (provider === "gemini" && !/^[\x21-\x7e]{20,4096}$/.test(key)) throw new ValidationError("Format key Gemini belum dapat dibaca. Tempel key lengkap dari Google AI Studio tanpa spasi atau baris baru di dalamnya.");
+    if (provider === "9router" && !/^[\x21-\x7e]{1,4096}$/.test(key)) throw new ValidationError("Format API key tidak valid.");
     apiKey = key;
   }
   let routerConfig: RouterConfig | undefined;
