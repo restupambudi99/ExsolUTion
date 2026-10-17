@@ -251,7 +251,8 @@ export default function Studio() {
     const retryingSlot = batch.slots.find(slot => slot.status === "running" && slot.retrying);
     const failures = batch.slots.filter(slot => (slot.status === "failed" || slot.status === "unresolved") && slot.error);
     const messages = failures.filter((slot, index) => failures.findIndex(item => item.error?.message === slot.error?.message) === index).slice(0, 3);
-    const blocked = !working && failures.some(slot => isBatchBlockingError(slot.error));
+    const providerOutage = batch.stopReason === "provider_outage";
+    const blocked = !working && (providerOutage || failures.some(slot => isBatchBlockingError(slot.error)));
     return <div className={`batch-summary ${summary.failed || summary.unresolved ? "batch-incomplete" : ""}`} role="status">
       <strong>{t(`${summary.completed} dari ${summary.total} gambar selesai`, `${summary.completed} of ${summary.total} images completed`)}</strong>
       {retryingSlot && <small>{t(`Mengulang gambar ${retryingSlot.index} setelah gangguan sementara…`, `Retrying image ${retryingSlot.index} after a temporary provider error…`)}</small>}
@@ -260,7 +261,7 @@ export default function Studio() {
         <p role="alert">{slot.error!.message}</p>
         {slot.requestId && <small>{t("ID permintaan", "Request ID")}: {slot.requestId}</small>}
       </div>)}
-      {blocked && <small>{t("Antrean dihentikan agar kegagalan yang sama tidak diulang. Perbaiki penyebab di atas sebelum mencoba kembali.", "The queue stopped to avoid repeating the same failure. Resolve the issue above before retrying.")}</small>}
+      {blocked && <small>{providerOutage ? t("Provider gagal berulang kali. Antrean dihentikan; gambar yang belum dikirim tetap disimpan dalam antrean. Periksa koneksi provider sebelum mencoba kembali.", "The provider failed repeatedly. The queue stopped; unsubmitted images remain queued. Check the provider connection before retrying.") : t("Antrean dihentikan agar kegagalan yang sama tidak diulang. Perbaiki penyebab di atas sebelum mencoba kembali.", "The queue stopped to avoid repeating the same failure. Resolve the issue above before retrying.")}</small>}
       {summary.failed > 0 && !summary.unresolved && imageBatchContexts.current[activeId] && <button type="button" className="secondary-button" disabled={working || checkingStatus || providerTesting} onClick={() => void retryImageBatch()}>{t(`Coba lagi ${summary.failed} gambar gagal`, `Retry ${summary.failed} failed images`)}</button>}
       {summary.unresolved > 0 && <small>{t("Periksa status terlebih dahulu. Gambar yang belum pasti tidak dikirim ulang.", "Check status first. Unresolved images are never submitted again.")}</small>}
     </div>;

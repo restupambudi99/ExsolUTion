@@ -18,6 +18,8 @@ export type GenerationBatch = {
   featureId: string;
   total: number;
   slots: BatchSlot[];
+  /** The queue paused after repeated, confirmed provider failures. */
+  stopReason?: "provider_outage";
   /** Only these original, one-based slots may run during the next explicit action. */
   runIndexes: number[];
 };
@@ -60,7 +62,7 @@ const BATCH_BLOCKING_CODES = new Set([
   "provider_quota_exceeded", "provider_precondition_failed", "provider_billing_required",
   "provider_payment_required", "provider_access_denied", "provider_region_unsupported",
   "router_provider_reauthentication_required", "router_generation_authentication_failed",
-  "router_model_required", "invalid_router_model", "router_request_rejected", "router_capability_unavailable",
+  "router_model_required", "invalid_router_model", "router_request_rejected", "router_capability_unavailable", "router_image_no_output",
 ]);
 
 /** Shared provider/account failures cannot be fixed by sending the next scene. */
@@ -96,6 +98,7 @@ export function createBatch(featureId: string, total: number): GenerationBatch {
  */
 export function retryFailed(batch: GenerationBatch): GenerationBatch {
   const retry = snapshot(batch);
+  delete retry.stopReason;
   retry.runIndexes = retry.slots.filter(slot => slot.status === "failed").map(slot => slot.index);
   retry.slots = retry.slots.map(slot => slot.status === "failed" ? { index: slot.index, status: "queued", ...(slot.attempts ? { attempts: slot.attempts } : {}) } : slot);
   return retry;
@@ -112,7 +115,8 @@ export async function runBatch(batch: GenerationBatch, options: RunBatchOptions)
   let current = snapshot(batch);
   // Neither an interrupted request nor another live runner may be interpreted as
   // a missing image. Resolve it with a read before explicitly continuing.
-  if (current.slots.some(slot => slot.status === "unresolved" || slot.status === "running")) return current;
+  // Only an explicit failed-slot retry clears a provider-outage pause.
+  if (current.stopReason || current.slots.some(slot => slot.status === "unresolved" || slot.status === "running")) return current;
   const selected = new Set(current.runIndexes);
   const update = (index: number, patch: Partial<BatchSlot>) => {
     current = { ...current, slots: current.slots.map(slot => slot.index === index ? { ...slot, ...patch } : slot) };
@@ -123,6 +127,7 @@ export async function runBatch(batch: GenerationBatch, options: RunBatchOptions)
     options.onUpdate?.(snapshot(current));
   };
   let stopBatch = false;
+  let consecutiveUnavailableSlots = 0;
   for (const slot of current.slots) {
     if (!selected.has(slot.index) || slot.status !== "queued") continue;
     if (options.shouldCancel?.()) { cancelQueued(); break; }
@@ -148,12 +153,19 @@ export async function runBatch(batch: GenerationBatch, options: RunBatchOptions)
           update(slot.index, { status: "failed", retrying: false, error: failure, requestId: failure.requestId });
           cancelQueued(); stopBatch = true; break;
         }
+        // Count final slot outcomes, not individual attempts. An isolated
+        // transient failure can recover, but a long outage must not consume
+        // two provider requests for every remaining scene in the batch.
+        consecutiveUnavailableSlots = !stop && retryableFailure(failure) ? consecutiveUnavailableSlots + 1 : 0;
+        const providerOutage = consecutiveUnavailableSlots >= 2;
+        if (providerOutage) current = { ...current, stopReason: "provider_outage" };
         update(slot.index, { status: unresolved ? "unresolved" : "failed", retrying: false, error: failure, ...(failure.requestId ? { requestId: failure.requestId } : {}) });
-        if (stop) stopBatch = true;
+        if (stop || providerOutage) stopBatch = true;
         break;
       }
       // Mark the paid request completed before invoking presentation callbacks.
       // A UI callback error must never make this slot eligible for another POST.
+      consecutiveUnavailableSlots = 0;
       update(slot.index, { status: "completed", retrying: false, output: cloneOutput(output), error: undefined, ...(output.requestId ? { requestId: output.requestId } : {}) });
       options.onResult?.(cloneOutput(output), slot.index);
       break;

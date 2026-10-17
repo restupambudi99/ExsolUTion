@@ -89,6 +89,19 @@ function hasRevokedProviderToken(value: unknown, depth = 0): boolean {
   return error.code === "token_revoked" || hasRevokedProviderToken(error.error,depth+1) || hasRevokedProviderToken(error.message,depth+1);
 }
 
+function hasCodexNoImage(value: unknown, depth = 0): boolean {
+  if (depth > 4) return false;
+  if (typeof value === "string") {
+    // This fixed marker is emitted by 9Router's Codex image adapter when its
+    // completed SSE parse has no image. It does not prove an account's plan.
+    if (value.includes("Codex did not return an image.")) return true;
+    try { return hasCodexNoImage(JSON.parse(value),depth+1); } catch { return false; }
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const error = value as Record<string,unknown>;
+  return hasCodexNoImage(error.error,depth+1) || hasCodexNoImage(error.message,depth+1);
+}
+
 async function errorPrefix(response: Response, limit: number) {
   if (!response.body) return new Uint8Array();
   const reader = response.body.getReader();
@@ -230,6 +243,37 @@ async function routerRequest(settings: RouterSettings, path: string, body?: unkn
         if (revokedProviderToken) throw new ProviderError(502,"router_provider_reauthentication_required",`Sesi akun provider model tujuan sudah dicabut (token_revoked) pada ${location}. Buka dashboard 9Router lalu hubungkan atau login ulang provider model yang dipilih. Mengganti API key 9Router tidak memperbarui sesi provider ini.`,diagnostic);
         if (!catalog) throw new ProviderError(502,"router_generation_authentication_failed",`Autentikasi saat generasi melalui 9Router ditolak pada ${location}. Periksa sesi akun provider tujuan dan aturan proxy. Respons generasi ini belum membuktikan bahwa API key 9Router salah; gunakan Uji Koneksi untuk memeriksa akses katalog secara terpisah.`,diagnostic);
         throw new ProviderError(502,"provider_authentication_failed",`Autentikasi 9Router ditolak pada ${location}. Periksa API key dan aturan autentikasi proxy untuk Base URL ini.${catalog ? " Pemeriksaan katalog ini belum menguji akses ke model." : " Periksa juga koneksi provider tujuan pada dashboard 9Router."}`,diagnostic);
+      }
+      if (response.status === 402) {
+        await response.body?.cancel();
+        const endpoint = path.split("?")[0] as ProviderDiagnostic["endpoint"];
+        const catalog = body === undefined;
+        const method = catalog ? "GET" : "POST";
+        const diagnostic: ProviderDiagnostic = {
+          provider: "9router", stage: catalog ? "catalog" : "generation", endpoint, method,
+          upstreamStatus: 402, reason: "payment_required",
+        };
+        throw new ProviderError(402,"provider_payment_required",`9Router mengembalikan Payment Required pada ${method} ${endpoint} (HTTP 402). Periksa akses model dan status pembayaran atau billing akun provider tujuan yang terhubung di dashboard 9Router sebelum mencoba lagi.`,diagnostic);
+      }
+      if (response.status === 500 || response.status === 502 || response.status === 503) {
+        // A 502 can be emitted after upstream processing and SSE parsing. Do
+        // not label every such response as a fresh, safe-to-retry rejection.
+        let payload: Record<string,unknown> | undefined;
+        try { payload = parseJson(await readBounded(response,8192)); }
+        catch { /* Malformed, empty, or oversized bodies retain only their HTTP status. */ }
+        const endpoint = path.split("?")[0] as ProviderDiagnostic["endpoint"];
+        const catalog = body === undefined;
+        const method = catalog ? "GET" : "POST";
+        const revokedProviderToken = !catalog && hasRevokedProviderToken(payload);
+        const noImage = !catalog && endpoint === "images/generations" && hasCodexNoImage(payload);
+        const diagnostic: ProviderDiagnostic = {
+          provider: "9router", stage: catalog ? "catalog" : "generation", endpoint, method,
+          upstreamStatus: response.status, reason: revokedProviderToken ? "provider_token_revoked" : noImage ? "image_no_output" : "upstream_unavailable",
+        };
+        const location = `${method} ${endpoint} (HTTP ${response.status})`;
+        if (revokedProviderToken) throw new ProviderError(502,"router_provider_reauthentication_required",`Sesi akun provider tujuan sudah dicabut (token_revoked) pada ${location}. Hubungkan atau login ulang akun provider di dashboard 9Router sebelum mencoba lagi; mengganti API key 9Router tidak memperbarui sesi ini.`,diagnostic);
+        if (noImage) throw new ProviderError(502,"router_image_no_output",`9Router selesai membaca respons Codex tanpa menerima hasil gambar pada ${location}. Penyebab pada akun atau model belum dapat dipastikan. Periksa koneksi dan log provider gambar di dashboard 9Router sebelum mencoba lagi.`,diagnostic);
+        throw new ProviderError(502,"provider_unavailable",`9Router atau provider tujuan belum berhasil menyelesaikan ${location}. Periksa koneksi dan status provider di dashboard 9Router. Respons ini belum membuktikan API key salah atau bahwa proses upstream belum berjalan.`,diagnostic);
       }
       await response.body?.cancel();
       if (response.status >= 300 && response.status < 400) throw new ProviderError(502,"router_redirect_refused","9Router mengembalikan redirect. Gunakan Base URL API akhir yang tepat.");
