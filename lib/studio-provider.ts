@@ -26,7 +26,26 @@ const API_HOST = "https://generativelanguage.googleapis.com";
 const MAX_RESPONSE_BYTES = 32 * 1024 * 1024;
 const MAX_ERROR_BYTES = 32 * 1024;
 const MAX_OUTPUT_BYTES = 20 * 1024 * 1024;
-const ASPECT_RATIOS = new Set(["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9", "1:4", "4:1", "1:8", "8:1"]);
+// responseFormat uses protobuf enum names on the REST wire, unlike imageConfig
+// and UI controls, which use labels such as "9:16" and "2K". Source of truth:
+// https://generativelanguage.googleapis.com/$discovery/rest?version=v1
+const ASPECT_RATIOS = new Map([
+  ["1:1", "ASPECT_RATIO_ONE_BY_ONE"],
+  ["2:3", "ASPECT_RATIO_TWO_BY_THREE"],
+  ["3:2", "ASPECT_RATIO_THREE_BY_TWO"],
+  ["3:4", "ASPECT_RATIO_THREE_BY_FOUR"],
+  ["4:3", "ASPECT_RATIO_FOUR_BY_THREE"],
+  ["4:5", "ASPECT_RATIO_FOUR_BY_FIVE"],
+  ["5:4", "ASPECT_RATIO_FIVE_BY_FOUR"],
+  ["9:16", "ASPECT_RATIO_NINE_BY_SIXTEEN"],
+  ["16:9", "ASPECT_RATIO_SIXTEEN_BY_NINE"],
+  ["21:9", "ASPECT_RATIO_TWENTY_ONE_BY_NINE"],
+  ["1:4", "ASPECT_RATIO_ONE_BY_FOUR"],
+  ["4:1", "ASPECT_RATIO_FOUR_BY_ONE"],
+  ["1:8", "ASPECT_RATIO_ONE_BY_EIGHT"],
+  ["8:1", "ASPECT_RATIO_EIGHT_BY_ONE"],
+]);
+const IMAGE_SIZES = new Map([["1K", "IMAGE_SIZE_ONE_K"], ["2K", "IMAGE_SIZE_TWO_K"], ["4K", "IMAGE_SIZE_FOUR_K"]]);
 const VOICES = new Set(["Zephyr", "Puck", "Charon", "Kore", "Fenrir", "Leda", "Orus", "Aoede", "Callirrhoe", "Autonoe", "Enceladus", "Iapetus", "Umbriel", "Algieba", "Despina", "Erinome", "Algenib", "Rasalgethi", "Laomedeia", "Achernar", "Alnilam", "Schedar", "Gacrux", "Pulcherrima", "Achird", "Zubenelgenubi", "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat"]);
 
 export function isGeminiVoice(value: unknown): value is string {
@@ -86,11 +105,16 @@ function geminiRequestContractError(error: Record<string, unknown> | undefined):
   const unknownField = /\b(?:unknown name|unrecogni[sz]ed (?:field|parameter|name)|cannot find field|unknown (?:field|parameter))\b/i;
   // These are our own request keys. Never copy arbitrary field paths, rejected
   // values, descriptions, or model/project identifiers into a returned error.
-  const allowedFields = ["responseFormat", "response_format", "imageConfig", "image_config", "responseModalities", "maxOutputTokens", "inlineData", "mimeType", "contents", "parts", "generationConfig"];
+  const allowedFields = ["responseFormat", "response_format", "imageConfig", "image_config", "aspectRatio", "aspect_ratio", "imageSize", "image_size", "responseModalities", "maxOutputTokens", "inlineData", "mimeType", "contents", "parts", "generationConfig"];
   for (const field of allowedFields) {
     const token = new RegExp(`(?:^|[^A-Za-z0-9_])${field}(?=$|[^A-Za-z0-9_])`);
     if ((unknownField.test(message) && token.test(message)) || violations.some(violation => typeof violation.description === "string" && unknownField.test(violation.description) && token.test(`${typeof violation.field === "string" ? violation.field : ""} ${violation.description}`))) {
       return new ProviderError(400,"provider_configuration_invalid",`Format permintaan aplikasi belum didukung Gemini pada parameter ${field}. Konfigurasi integrasi perlu diperbaiki sebelum mencoba lagi.`);
+    }
+  }
+  for (const [field,token,label] of [["aspectRatio", /\b(?:aspectRatio|aspect_ratio)\b/i, "rasio"], ["imageSize", /\b(?:imageSize|image_size)\b/i, "resolusi"]] as const) {
+    if (descriptions.some(description => token.test(description) && /\b(?:invalid value|invalid enum|unknown enum value|not a valid enum)\b/i.test(description))) {
+      return new ProviderError(400,"provider_configuration_invalid",`Nilai ${label} gambar pada permintaan aplikasi tidak sesuai kontrak Gemini (${field}). Konfigurasi integrasi perlu diperbaiki sebelum mencoba lagi.`);
     }
   }
   if (descriptions.some(description => /\b(?:maxOutputTokens|max_output_tokens)\b/i.test(description) && /\b(?:out of range|exceeds?|greater than|above|must be (?:less than|at most|between)|too (?:large|high))\b/i.test(description))) {
@@ -237,9 +261,9 @@ export async function generateWithGemini(input: GenerateInput, featureIntent: st
   const generationConfig: Record<string, unknown> = { maxOutputTokens: input.kind === "image" ? 32_768 : 8192 };
   if (input.kind === "image") {
     generationConfig.responseModalities = ["TEXT", "IMAGE"];
-    const aspectRatio = [input.options.aspectRatio, input.options.ratio, input.options.aspect_ratio].find((value) => typeof value === "string" && ASPECT_RATIOS.has(value));
-    const imageSize = [input.options.resolution, input.options.imageSize].find((value) => ["1K", "2K", "4K"].includes(String(value)));
-    if (aspectRatio || imageSize) generationConfig.responseFormat = { image: { ...(aspectRatio ? { aspectRatio } : {}), ...(imageSize ? { imageSize } : {}) } };
+    const aspectRatio = [input.options.aspectRatio, input.options.ratio, input.options.aspect_ratio].find((value): value is string => typeof value === "string" && ASPECT_RATIOS.has(value));
+    const imageSize = [input.options.resolution, input.options.imageSize].find((value): value is string => typeof value === "string" && IMAGE_SIZES.has(value));
+    if (aspectRatio || imageSize) generationConfig.responseFormat = { image: { ...(aspectRatio ? { aspectRatio: ASPECT_RATIOS.get(aspectRatio) } : {}), ...(imageSize ? { imageSize: IMAGE_SIZES.get(imageSize) } : {}) } };
   }
   const model = validModel(input.kind === "image" ? settings.imageModel : settings.textModel);
   const response = await providerJson(`/v1/models/${model}:generateContent`, {
