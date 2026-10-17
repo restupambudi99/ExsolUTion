@@ -35,6 +35,10 @@
 @media(max-width:600px){.pending-recovery{flex-wrap:wrap}.pending-recovery>.secondary-button{width:100%}.pending-recovery-item{align-items:flex-start}}
 .nav-feature>.feature-nav-icon{margin-block:-2px}
 .group-title>.feature-nav-icon{margin-block:-1px}
+.upload-drop{position:relative;overflow:hidden}
+.upload-drop .upload-file-input{position:absolute;inset:0;z-index:1;width:100%;height:100%;min-height:0;margin:0;padding:0;border:0;opacity:0;cursor:pointer}
+.upload-drop .upload-file-input:disabled{cursor:wait}
+.upload-drop:focus-within{outline:3px solid var(--green);outline-offset:3px}
 .angle-fieldset{border:0;margin:0 0 24px;padding:0;min-width:0;grid-column:1/-1}
 .angle-fieldset legend{display:flex;gap:10px;align-items:center;width:100%;font-size:15px;font-weight:700;margin-bottom:10px}
 .angle-fieldset legend>span{margin-left:auto;background:var(--green-pale);border:1px solid var(--green-soft);color:var(--green-dark);border-radius:20px;padding:4px 10px;font-size:11px}

@@ -21,6 +21,7 @@ Analisis memilih skrip aplikasi `script-12.js`; sebelas skrip bridge/library ber
 - Nama sudut dan rasio disimpan dalam hasil sehingga riwayat dan pemulihan tetap konsisten.
 - PNG/JPG benar-benar dikonversi melalui Canvas. Ekspor mengikuti 1080×1080, 1920×1080, atau 1080×1920; foto dipaskan tanpa distorsi atau crop diam-diam. Resolusi asli provider bisa berbeda.
 - Menggunakan koneksi Gemini/9Router tersimpan. Generate tidak membuka dialog pengaturan otomatis.
+- Kotak upload memakai input file native yang menutupi seluruh area klik. Pemilihan foto tidak bergantung pada aktivasi label atau dialog JavaScript; ikon, teks, dan ruang kosong menuju kontrol file yang sama. Nama aksesibel mengikuti judul kolom, fokus keyboard terlihat, dan pilihan tetap satu foto PNG/JPG/WebP maksimal 25 MB. Thumbnail dan tombol hapus berada di luar area input. Nilai input dikosongkan setelah FileList disalin agar foto yang sama dapat dipilih ulang.
 
 ## Validasi
 
