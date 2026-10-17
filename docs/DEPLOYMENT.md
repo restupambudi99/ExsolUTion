@@ -1,5 +1,22 @@
 # Catatan penerbitan ExsolUTion
 
+## Perbaikan Gemini 17 Oktober 2026
+
+- Source produksi: `e6ccdc7c175dadcfda868ddb337e8e63f00c4fd1`.
+- Saved version 7: `appgprj_6ad1ce23b43081919d3f1a5e485c2a2d~appgver_b5d2499d6f0881918af8067d8c38b4d7`.
+- Deployment `appgdep_6ad2ff5f9958819182cd28c7d3b8292f` **succeeded**, environment revision 2 dan MCP aktif. Domain utama tetap https://tools.restupambudi.my.id . Audience custom dipertahankan.
+- 351 tes, TypeScript `--noEmit --incremental false`, dan build produksi lulus. Source hosting dan `origin/main` GitHub memuat merge kedua riwayat, termasuk commit GitHub `7e469bb5b66c03bf3693abc90b4370a343914445`; tidak ada force push.
+
+Penyebab HTTP400 `INVALID_ARGUMENT` adalah format enum gambar: label UI `9:16`/`2K` sebelumnya dikirim langsung ke `responseFormat.image`. Adaptor sekarang memetakan 14 rasio dan tiga resolusi ke enum resmi. Acuan kontrak adalah discovery Google v1 revisi `20261015` serta https://ai.google.dev/api/generate-content#ImageResponseFormat . Tes memeriksa 42 kombinasi, alias, opsi otomatis, dan perlindungan nilai rahasia pada error. Input UI dan opsi tersimpan tetap memakai label semula.
+
+Verifikasi online melalui browser Codex: satu permintaan teks dengan koneksi Gemini tersimpan berhasil membalas `OK`. Setelah deployment, batch empat gambar dengan foto referensi yang sudah ada tidak lagi terkena HTTP400 format; Google mengembalikan HTTP429 yang dipetakan ke `provider_quota_exceeded`. Satu slot gagal dan tiga slot belum dikirim; antrean tidak melanjutkan penolakan yang sama. Pengaturan AI tidak dibuka otomatis. Tab formulir tidak dimuat ulang sehingga foto referensi pengguna dipertahankan.
+
+**Batas hasil:** gambar provider nyata belum berhasil dihasilkan, sehingga penyelesaian empat gambar dan unduh hasil baru belum dapat dibuktikan. Key diterima untuk teks/katalog, tetapi itu tidak membuktikan kuota gambar. Berdasarkan https://ai.google.dev/gemini-api/docs/pricing yang diperiksa 17 Oktober 2026, `gemini-3.1-flash-image` tidak menyediakan Free Tier API. Perlu memeriksa billing/kuota proyek yang memiliki key, atau memilih koneksi 9Router milik pengguna yang memiliki akses gambar. Tidak ada aktivasi billing, pembelian kredit, penggantian key, atau perpindahan provider otomatis pada pengujian ini. Jangan menyatakan layanan gambar siap produksi sebelum uji gambar dan unduh nyata berhasil.
+
+Versi 4/5 sebelumnya menambahkan klasifikasi error bounded, pelaporan penyebab pada Hasil Kreasi, serta penghentian antrean untuk kegagalan bersama. Versi 6 dari `d731ec141d12468820eed5eae809b316f39048d3` tersimpan tetapi tidak diterbitkan; versi 7 memakai merge terverifikasi. Pengemasan sempat dihentikan pemeriksaan persetujuan otomatis karena receipt source mendahului merge. Hasil merge kemudian dicatat, dibuka ulang melalui source helper resmi, dibangun menjadi arsip baru dari SHA yang sama, lalu disimpan dan diterbitkan.
+
+Commit dokumentasi verifikasi sesudah SHA produksi di atas tidak mengubah kode Worker.
+
 ## Hasil 16 Oktober 2026
 
 - GitHub authoritative: https://github.com/restupambudi99/ExsolUTion
