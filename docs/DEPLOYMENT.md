@@ -1,5 +1,18 @@
 # Catatan penerbitan ExsolUTion
 
+## Klik unggah 21 Angle Generator — 17 Oktober 2026
+
+- Source produksi: `910666aacf4ee4aaa52e652cda8c343d507bbaf4`.
+- Saved version 8: `appgprj_6ad1ce23b43081919d3f1a5e485c2a2d~appgver_58f146086ad48191a0d1a962074fce8c`.
+- Deployment `appgdep_6ad3052cc7a08191a37f56fdfb7eb145` **succeeded**, environment revision 2, MCP aktif, domain https://tools.restupambudi.my.id dan audience custom dipertahankan.
+- 351 tes, TypeScript `--noEmit --incremental false`, dan build produksi lulus. SHA perbaikan yang sama tersimpan di GitHub.
+
+Pengguna melaporkan klik kotak unggah tidak membuka pemilih file. Pada tab IAB baru, mekanisme label lama dapat membuka chooser; masalah interaksi asli belum direproduksi pada semua browser. Perbaikan menghapus ketergantungan aktivasi label: input file native kini menutupi seluruh kotak, dengan nama aksesibel, bantuan format, serta indikator fokus keyboard. Validasi dan pemrosesan foto tetap memakai alur yang sama.
+
+Verifikasi browser produksi setelah reload versi 8: input tidak lagi terpotong, tiga titik pada kotak unggah mengenai input yang sama; klik native dan tombol Space masing-masing membuka file chooser satu foto. PNG pengujian berhasil didekode, thumbnail tampil, dan file yang sama dapat dipilih ulang setelah nilai input direset. Memilih satu sudut mengaktifkan tombol Hasilkan Sudut Terpilih. Tombol hapus foto juga bekerja. File dan pilihan pengujian dibersihkan sesudah bukti disimpan; foto pengguna pada tab lain tidak diubah. Tidak ada request generate atau pemakaian kuota AI selama pengujian upload ini.
+
+Pengemasan sempat dihentikan pemeriksaan persetujuan otomatis karena metadata source belum mengikuti perubahan yang belum di-commit. Perubahan kemudian dicatat sebagai commit bersih, source dibuka ulang melalui helper resmi, dan arsip dibangun dari SHA yang sama sebelum publikasi. Commit dokumentasi sesudahnya tidak mengubah Worker versi 8.
+
 ## Perbaikan Gemini 17 Oktober 2026
 
 - Source produksi: `e6ccdc7c175dadcfda868ddb337e8e63f00c4fd1`.

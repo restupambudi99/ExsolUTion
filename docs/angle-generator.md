@@ -25,6 +25,8 @@ Analisis memilih skrip aplikasi `script-12.js`; sebelas skrip bridge/library ber
 
 ## Validasi
 
+Pembaruan upload 17 Oktober 2026 telah aktif sebagai versi 8. Di browser produksi, klik input native dan akses keyboard membuka pemilih file, PNG tampil pada thumbnail, pemilihan ulang file sama berhasil, serta pilihan satu sudut mengaktifkan tombol generate. File uji dibersihkan setelah pemeriksaan. Sebanyak 351 tes, TypeScript, dan build produksi lulus. Pemeriksaan ini tidak membuat permintaan generasi berbayar; lihat `docs/DEPLOYMENT.md` untuk provenance dan batas hasil.
+
 - 290 tes otomatis lulus, termasuk pemilihan slot 21, validasi sebelum provider, satu output per slot, metadata riwayat/recovery, encoding unduhan, dan batas tools lain.
 - Pemeriksaan TypeScript dan build produksi lulus.
 - Browser desktop: menu, pilihan semua 21 sudut, ekspresi, rasio, unggahan satu foto, dan validasi inline diperiksa.
