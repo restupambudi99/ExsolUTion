@@ -1,5 +1,40 @@
 # Catatan penerbitan ExsolUTion
 
+## Migrasi workspace — 18 Oktober 2026
+
+Pengguna meminta migrasi setelah akun/workspace berubah dan Site sebelumnya tidak dapat diakses melalui koneksi Sites yang aktif. Source dan seluruh riwayat Git dipertahankan; target hosting baru menggunakan runtime terpisah.
+
+| Pemeriksaan | Hasil terverifikasi |
+| --- | --- |
+| Site workspace baru | `appgprj_6ad4372e16d0819184d4e55e5648e86a` |
+| URL produksi target baru | https://exsolution-studio-workspace.kpm-jan-5822.chatgpt.site |
+| Domain produksi bermerek | https://exsolution.restupambudi.my.id — status **active**, provider **active**, SSL **active** |
+| Saved version 1 | `appgprj_6ad4372e16d0819184d4e55e5648e86a~appgver_189c07822c2c819184471c36df1cd369` |
+| Source deployment | `e661ab8d074e88e950f73fc51e6f6a964cc9753b` |
+| Deployment terbaru | `appgdep_6ad43f1b4c748191959dbc257cd54ad3` — **succeeded** |
+| Environment | Revision **2** |
+| MCP | `has_mcp: true` |
+| Endpoint MCP dan OAuth resource dari `get_site` | https://exsolution-studio-workspace.kpm-jan-5822.chatgpt.site/mcp |
+| Audience | **custom**, daftar akses yang sebelumnya disetujui dipertahankan |
+| Pemeriksaan source | **367 tes**, TypeScript `--noEmit --incremental false`, dan build produksi lulus |
+| GitHub dan checkout canonical | SHA `e661ab8d074e88e950f73fc51e6f6a964cc9753b` sudah di-push ke GitHub; checkout `sites/exsolution` mengikuti SHA yang sama melalui fast-forward |
+
+Manifest `.openai/hosting.json` menunjuk Site workspace baru dengan binding `DB`, `BUCKET`, dan capability `mcp`. Checkout `sites/exsolution-migration` digunakan sebagai staging migrasi; source authoritative tetap repository GitHub utama beserta riwayatnya. Hasil deployment di atas berasal dari status terminal native Sites, bukan hanya keberhasilan build atau perubahan URL pada source.
+
+Deployment awal `appgdep_6ad43c597dd4819194867426864da3df` berhasil pada environment revision 1. Setelah identitas Site baru diverifikasi dan konfigurasi administrator ditambahkan, saved version 1 yang sama diterbitkan ulang sebagai deployment terbaru di tabel, dengan source tetap `e661ab8d074e88e950f73fc51e6f6a964cc9753b`, environment revision 2, dan `has_mcp: true`.
+
+**Domain:** percobaan memasang `tools.restupambudi.my.id` ke Site workspace baru ditolak HTTP409 `custom_domain_conflict`, karena hostname masih terikat pada Site sebelumnya. Record DNS domain tersebut tidak diubah. Sebagai alamat aktif workspace baru, `exsolution.restupambudi.my.id` dipasang dengan CNAME DNS only ke `custom-domains.chatgpt.site` dan dua TXT verifikasi yang diberikan Sites. Status native Sites menjadi active/provider active/SSL active; permintaan HTTPS dengan validasi sertifikat normal lulus dan `/api/session` tanpa login mengembalikan HTTP401. Transfer binding domain `tools` masih memerlukan akses proyek sebelumnya atau pengelola Sites.
+
+**Data dan rahasia:** Site workspace baru menggunakan D1/R2 baru dan secret enkripsi vault baru. Database, file hasil, API key, token OAuth, kredensial tersimpan, dan runtime lama tidak diimpor dari Git. Konfigurasi nonrahasia 9Router dipertahankan. Koneksi 9Router kemudian diisi melalui Pengaturan AI pada Site baru; respons `/api/session` mengonfirmasi `providers.9router.savedCredential: true`, `credentialState: saved`, dan Base URL HTTPS yang sesuai. Nilai key tidak dicatat. Riwayat source di GitHub bukan cadangan data runtime.
+
+**Login, admin, dan MCP:** login browser pada origin Sites baru berhasil. Respons `/api/session` mengonfirmasi `authenticated: true`; identitas Site baru yang terverifikasi digunakan untuk konfigurasi runtime `STUDIO_ADMIN_USER_IDS`, tanpa menyimpan ID tersebut dalam repository. Konfigurasi diterapkan pada environment revision 2 dan deployment ulang yang berhasil. Audience custom tetap dipertahankan. Plugin MCP baru berhasil menjalankan `get_site_summary`, `get_ai_connection_status`, dan tool admin baca `list_prompt_changes`; peran pemanggil terbaca `administrator`. Uji ini membuktikan koneksi Codex ke MCP, sedangkan client Claude Code perlu login OAuth sendiri.
+
+**Verifikasi browser 21 Angle Generator:** pemilih file native berhasil memilih fixture PNG nonpersonal dan thumbnail tampil. Memilih satu sudut mengaktifkan tombol generate. Satu permintaan gambar nyata dijalankan menggunakan koneksi tersimpan, tanpa membuka ulang Pengaturan AI. Respons dari 9Router untuk `POST images/generations` ialah **HTTP402 Payment Required** (ID permintaan aplikasi `9ee9d1d0-58a4-4362-9b27-211903cdefcb`). UI menampilkan 0 dari 1 selesai, 1 gagal, dan menghentikan antrean; tidak ada POST kedua otomatis. Keberhasilan gambar maupun unduh hasil baru belum terbukti. Screenshot bukti disimpan lokal di luar repository aplikasi dan tidak disertakan dalam deployment.
+
+**Batas verifikasi AI:** generasi gambar provider nyata belum berhasil. Sebelum migrasi, koneksi OAuth Codex di dashboard 9Router ditandai unavailable dengan HTTP402 dan satu uji koneksi menghasilkan `API returned 402`. Pada Site baru, POST gambar nyata juga ditolak 402; Quota Tracker 9Router menyatakan usage API Codex sementara tidak tersedia (402). Kombinasi ini membuktikan penolakan pada jalur Codex/9Router, tetapi belum mengungkap detail akun, kuota, atau pembayaran yang diperlukan. Source yang diterbitkan mempertahankan HTTP402 sebagai `provider_payment_required`, mengenali marker no-image/token revoked secara bounded, dan membatasi kelanjutan antrean saat provider gagal. Tidak ada pembelian kredit atau penggantian provider otomatis dalam migrasi ini.
+
+Catatan 16–17 Oktober berikut adalah riwayat hosting sebelum migrasi workspace ini. URL `easybell32`, domain lama, project ID, deployment, identitas login, serta status admin pada bagian historis tersebut tidak menjadi acuan runtime workspace baru.
+
 ## Klik unggah 21 Angle Generator — 17 Oktober 2026
 
 - Source produksi: `910666aacf4ee4aaa52e652cda8c343d507bbaf4`.

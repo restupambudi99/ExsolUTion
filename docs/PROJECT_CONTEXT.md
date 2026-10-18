@@ -19,13 +19,14 @@ Migrasi workspace diminta pengguna setelah akun/workspace berubah. Target baru d
 | Komponen | Identitas |
 | --- | --- |
 | Site workspace baru | `appgprj_6ad4372e16d0819184d4e55e5648e86a` |
-| URL target migrasi | `https://exsolution-studio-workspace.kpm-jan-5822.chatgpt.site` |
+| Domain produksi workspace baru | `https://exsolution.restupambudi.my.id` |
+| Origin Sites alternatif | `https://exsolution-studio-workspace.kpm-jan-5822.chatgpt.site` |
 | Domain sebelumnya, transfer belum terverifikasi | `https://tools.restupambudi.my.id` |
 | Manifest sumber | `.openai/hosting.json` |
 | Binding database | `DB` |
 | Binding file | `BUCKET` |
 | Capability platform | `mcp` |
-| Endpoint MCP target, verifikasi setelah publikasi | `https://exsolution-studio-workspace.kpm-jan-5822.chatgpt.site/mcp` |
+| Endpoint MCP dan OAuth resource terverifikasi | `https://exsolution-studio-workspace.kpm-jan-5822.chatgpt.site/mcp` |
 | Domain legacy pada Site lama | `https://toolsaff.restupambudi.my.id` |
 
 Target baru menggunakan D1/R2 kosong dan secret enkripsi baru. Tidak ada API key, OAuth token, database, atau hasil generasi lama yang disalin dari Git. Konfigurasi nonrahasia 9Router dipertahankan. Audience tetap custom dengan email yang sebelumnya disetujui pengguna; pemilik workspace baru selalu tetap mendapat akses. Runtime admin harus berasal dari identitas login Site baru yang terverifikasi, bukan ID pemilik workspace atau admin Site lama. Status publikasi dan perpindahan domain dicatat terpisah di `docs/DEPLOYMENT.md`.
