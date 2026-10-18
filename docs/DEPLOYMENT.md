@@ -9,19 +9,19 @@ Pengguna meminta migrasi setelah akun/workspace berubah dan Site sebelumnya tida
 | Site workspace baru | `appgprj_6ad4372e16d0819184d4e55e5648e86a` |
 | URL produksi target baru | https://exsolution-studio-workspace.kpm-jan-5822.chatgpt.site |
 | Domain produksi bermerek | https://exsolution.restupambudi.my.id — status **active**, provider **active**, SSL **active** |
-| Saved version 1 | `appgprj_6ad4372e16d0819184d4e55e5648e86a~appgver_189c07822c2c819184471c36df1cd369` |
-| Source deployment | `e661ab8d074e88e950f73fc51e6f6a964cc9753b` |
-| Deployment terbaru | `appgdep_6ad43f1b4c748191959dbc257cd54ad3` — **succeeded** |
+| Saved version terbaru | `appgprj_6ad4372e16d0819184d4e55e5648e86a~appgver_82de70e5e4f08191a48c1e790d604f9f` |
+| Source deployment | `5158fc3928caba14e05aedb7618954227d33c52e` |
+| Deployment terbaru | `appgdep_6ad496ec15d48191be86687d400698ea` — **succeeded** |
 | Environment | Revision **2** |
 | MCP | `has_mcp: true` |
 | Endpoint MCP dan OAuth resource dari `get_site` | https://exsolution-studio-workspace.kpm-jan-5822.chatgpt.site/mcp |
 | Audience | **custom**, daftar akses yang sebelumnya disetujui dipertahankan |
 | Pemeriksaan source | **367 tes**, TypeScript `--noEmit --incremental false`, dan build produksi lulus |
-| GitHub dan checkout canonical | SHA `e661ab8d074e88e950f73fc51e6f6a964cc9753b` sudah di-push ke GitHub; checkout `sites/exsolution` mengikuti SHA yang sama melalui fast-forward |
+| GitHub dan checkout canonical | SHA `5158fc3928caba14e05aedb7618954227d33c52e` sudah di-push ke GitHub; checkout `sites/exsolution` mengikuti SHA yang sama melalui fast-forward |
 
 Manifest `.openai/hosting.json` menunjuk Site workspace baru dengan binding `DB`, `BUCKET`, dan capability `mcp`. Checkout `sites/exsolution-migration` digunakan sebagai staging migrasi; source authoritative tetap repository GitHub utama beserta riwayatnya. Hasil deployment di atas berasal dari status terminal native Sites, bukan hanya keberhasilan build atau perubahan URL pada source.
 
-Deployment awal `appgdep_6ad43c597dd4819194867426864da3df` berhasil pada environment revision 1. Setelah identitas Site baru diverifikasi dan konfigurasi administrator ditambahkan, saved version 1 yang sama diterbitkan ulang sebagai deployment terbaru di tabel, dengan source tetap `e661ab8d074e88e950f73fc51e6f6a964cc9753b`, environment revision 2, dan `has_mcp: true`.
+Deployment awal `appgdep_6ad43c597dd4819194867426864da3df` berhasil pada environment revision 1. Setelah identitas Site baru diverifikasi dan konfigurasi administrator ditambahkan, saved version 1 diterbitkan ulang sebagai `appgdep_6ad43f1b4c748191959dbc257cd54ad3` dengan source `e661ab8d074e88e950f73fc51e6f6a964cc9753b`, environment revision 2, dan `has_mcp: true`. Saved version terbaru memakai source `5158fc3928caba14e05aedb7618954227d33c52e` agar URL yang dibaca aplikasi memakai domain bermerek; deployment terbarunya berhasil pada environment revision 2 dan `has_mcp: true`. MCP produksi mengembalikan `siteUrl` bermerek, `mcpUrl` origin Sites, serta peran administrator yang valid.
 
 **Domain:** percobaan memasang `tools.restupambudi.my.id` ke Site workspace baru ditolak HTTP409 `custom_domain_conflict`, karena hostname masih terikat pada Site sebelumnya. Record DNS domain tersebut tidak diubah. Sebagai alamat aktif workspace baru, `exsolution.restupambudi.my.id` dipasang dengan CNAME DNS only ke `custom-domains.chatgpt.site` dan dua TXT verifikasi yang diberikan Sites. Status native Sites menjadi active/provider active/SSL active; permintaan HTTPS dengan validasi sertifikat normal lulus dan `/api/session` tanpa login mengembalikan HTTP401. Transfer binding domain `tools` masih memerlukan akses proyek sebelumnya atau pengelola Sites.
 
