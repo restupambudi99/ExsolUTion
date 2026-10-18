@@ -14,17 +14,21 @@ Pengguna telah meminta agar seluruh source proyek dan perkembangan selanjutnya d
 
 ## Hosting aktif dan domain
 
+Migrasi workspace diminta pengguna setelah akun/workspace berubah. Target baru dibuat pada 18 Oktober 2026 dari source GitHub `b3d6cfee385aadc09be821f8bc50fea5fc61c139` beserta seluruh history. Checkout `sites/exsolution-migration` hanya staging migrasi; checkout canonical tetap `sites/exsolution` dan akan mengikuti commit GitHub yang sama. Table berikut menunjuk target workspace baru; catatan 16–17 Oktober di bawah adalah provenance hosting sebelumnya.
+
 | Komponen | Identitas |
 | --- | --- |
-| Site baru | `appgprj_6ad1ce23b43081919d3f1a5e485c2a2d` |
-| Domain utama | `https://tools.restupambudi.my.id` |
-| Origin Sites alternatif | `https://exsolution-studio.easybell32.chatgpt.site` |
+| Site workspace baru | `appgprj_6ad4372e16d0819184d4e55e5648e86a` |
+| URL target migrasi | `https://exsolution-studio-workspace.kpm-jan-5822.chatgpt.site` |
+| Domain sebelumnya, transfer belum terverifikasi | `https://tools.restupambudi.my.id` |
 | Manifest sumber | `.openai/hosting.json` |
 | Binding database | `DB` |
 | Binding file | `BUCKET` |
 | Capability platform | `mcp` |
-| Endpoint MCP dan OAuth resource | `https://exsolution-studio.easybell32.chatgpt.site/mcp` |
+| Endpoint MCP target, verifikasi setelah publikasi | `https://exsolution-studio-workspace.kpm-jan-5822.chatgpt.site/mcp` |
 | Domain legacy pada Site lama | `https://toolsaff.restupambudi.my.id` |
+
+Target baru menggunakan D1/R2 kosong dan secret enkripsi baru. Tidak ada API key, OAuth token, database, atau hasil generasi lama yang disalin dari Git. Konfigurasi nonrahasia 9Router dipertahankan. Audience tetap custom dengan email yang sebelumnya disetujui pengguna; pemilik workspace baru selalu tetap mendapat akses. Runtime admin harus berasal dari identitas login Site baru yang terverifikasi, bukan ID pemilik workspace atau admin Site lama. Status publikasi dan perpindahan domain dicatat terpisah di `docs/DEPLOYMENT.md`.
 
 Site lama `appgprj_6acfac3a374c8191b6c74ab684fa837b` sudah tidak menjadi tujuan penerbitan checkout ini. Site baru dibuat atas permintaan pengguna setelah proyek lama tidak dapat ditemukan oleh koneksi Sites.
 

@@ -1,10 +1,10 @@
 # MCP & Plugin ExsolUTion
 
-Panduan ini ditujukan untuk pemeliharaan ExsolUTion dengan Codex, ChatGPT, atau Claude Code. Panduan visual setelah login tersedia di [halaman MCP & Plugin](https://tools.restupambudi.my.id/integrations). Origin Sites `https://exsolution-studio.easybell32.chatgpt.site` tetap menjadi alamat alternatif untuk aplikasi yang sama.
+Panduan ini ditujukan untuk pemeliharaan ExsolUTion dengan Codex, ChatGPT, atau Claude Code. Panduan visual setelah login tersedia di [halaman MCP & Plugin](https://exsolution-studio-workspace.kpm-jan-5822.chatgpt.site/integrations). Origin Sites `https://exsolution-studio-workspace.kpm-jan-5822.chatgpt.site` tetap menjadi alamat alternatif untuk aplikasi yang sama.
 
 ## Koneksi
 
-Endpoint remote HTTP MCP: `https://exsolution-studio.easybell32.chatgpt.site/mcp`. Domain utama website adalah `https://tools.restupambudi.my.id`, sedangkan endpoint dan OAuth resource MCP tetap pada origin yang dikonfirmasi Sites. Nilai canonical keduanya berada pada `lib/studio-mcp-info.ts`; perubahan domain website tidak otomatis mengganti resource OAuth atau command koneksi. Autentikasi dan OAuth ditangani platform Sites. Akses mengikuti audience custom ExsolUTion, bukan email atau identitas yang dikirim dalam argumen tool.
+Endpoint remote HTTP MCP: `https://exsolution-studio-workspace.kpm-jan-5822.chatgpt.site/mcp`. Domain utama website adalah `https://exsolution-studio-workspace.kpm-jan-5822.chatgpt.site`, sedangkan endpoint dan OAuth resource MCP tetap pada origin yang dikonfirmasi Sites. Nilai canonical keduanya berada pada `lib/studio-mcp-info.ts`; perubahan domain website tidak otomatis mengganti resource OAuth atau command koneksi. Autentikasi dan OAuth ditangani platform Sites. Akses mengikuti audience custom ExsolUTion, bukan email atau identitas yang dikirim dalam argumen tool.
 
 ### Codex dan ChatGPT
 
@@ -19,7 +19,7 @@ Endpoint MCP memerlukan token OAuth client yang dikelola Sites. Cookie login web
 Jalankan dari terminal project menggunakan Claude Code versi yang mendukung remote HTTP MCP dan OAuth:
 
 ```sh
-claude mcp add --transport http exsolution https://exsolution-studio.easybell32.chatgpt.site/mcp
+claude mcp add --transport http exsolution https://exsolution-studio-workspace.kpm-jan-5822.chatgpt.site/mcp
 claude mcp login exsolution
 ```
 
